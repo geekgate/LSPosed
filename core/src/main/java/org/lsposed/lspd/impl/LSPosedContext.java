@@ -4,8 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.ActivityThread;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.res.Resources;
 import android.os.Build;
-import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
@@ -22,6 +22,7 @@ import org.lsposed.lspd.service.ILSPInjectedModuleService;
 import org.lsposed.lspd.util.LspModuleClassLoader;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -57,6 +58,21 @@ public class LSPosedContext implements XposedInterface {
     private final ApplicationInfo mApplicationInfo;
     private final ILSPInjectedModuleService service;
     private final Map<String, SharedPreferences> mRemotePrefs = new ConcurrentHashMap<>();
+
+    public static class FileException extends XposedFrameworkError {
+
+        public FileException(String message) {
+            super(message);
+        }
+
+        public FileException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public FileException(Throwable cause) {
+            super(cause);
+        }
+    }
 
     LSPosedContext(String packageName, ApplicationInfo applicationInfo, ILSPInjectedModuleService service) {
         this.mPackageName = packageName;
@@ -164,30 +180,6 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
-    @Override
-    @NonNull
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @Override
-    @NonNull
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.doHook(origin, priority, hooker);
-    }
-
-    @Override
-    @NonNull
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @Override
-    @NonNull
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.doHook(origin, priority, hooker);
-    }
-
     private static boolean doDeoptimize(@NonNull Executable method) {
         if (Modifier.isAbstract(method.getModifiers())) {
             throw new IllegalArgumentException("Cannot deoptimize abstract methods: " + method);
@@ -237,7 +229,8 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
-    private static char[] getExecutableShorty(Executable executable) {
+    @NonNull
+    private static char[] getExecutableShorty(@NonNull Executable executable) {
         var parameterTypes = executable.getParameterTypes();
         var shorty = new char[parameterTypes.length + 1];
         shorty[0] = getTypeShorty(executable instanceof Method ? ((Method) executable).getReturnType() : void.class);
@@ -291,6 +284,16 @@ public class LSPosedContext implements XposedInterface {
         return new LSPosedDexParser(dexData, includeAnnotations);
     }
 
+    @Override
+    public Resources getResources() {
+        return null;
+    }
+
+    @Override
+    public ClassLoader getClassLoader() {
+        return null;
+    }
+
     @NonNull
     @Override
     public ApplicationInfo getApplicationInfo() {
@@ -299,37 +302,120 @@ public class LSPosedContext implements XposedInterface {
 
     @NonNull
     @Override
-    public SharedPreferences getRemotePreferences(String name) {
+    public SharedPreferences getSharedPreferences(String name, int mode) {
         if (name == null) throw new IllegalArgumentException("name must not be null");
         return mRemotePrefs.computeIfAbsent(name, n -> {
             try {
                 return new LSPosedRemotePreferences(service, n);
             } catch (RemoteException e) {
                 log("Failed to get remote preferences", e);
-                throw new XposedFrameworkError(e);
+                throw new FileException(e);
             }
         });
     }
 
     @NonNull
     @Override
-    public String[] listRemoteFiles() {
+    public String[] fileList() {
         try {
             return service.getRemoteFileList();
         } catch (RemoteException e) {
             log("Failed to list remote files", e);
-            throw new XposedFrameworkError(e);
+            throw new FileException(e);
         }
     }
 
     @NonNull
     @Override
-    public ParcelFileDescriptor openRemoteFile(String name) throws FileNotFoundException {
+    public FileInputStream openFileInput(String name) throws FileNotFoundException {
         if (name == null) throw new IllegalArgumentException("name must not be null");
-        try {
-            return service.openRemoteFile(name);
-        } catch (RemoteException e) {
-            throw new FileNotFoundException(e.getMessage());
-        }
+        return new FileInputStream(name);
+//        try {
+//            var file = service.openRemoteFile(name);
+//
+//
+//        } catch (RemoteException e) {
+//            throw new FileNotFoundException(e.getMessage());
+//        }
+    }
+
+
+    @Nullable
+    @Override
+    public Object featuredMethod(String name, Object... args) {
+        return null;
+    }
+
+    @NonNull
+    @Override
+    public MethodUnhooker<BeforeHooker<Method>, Method> hookBefore(@NonNull Method origin, @NonNull BeforeHooker<Method> hooker) {
+        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @NonNull
+    @Override
+    public MethodUnhooker<AfterHooker<Method>, Method> hookAfter(@NonNull Method origin, @NonNull AfterHooker<Method> hooker) {
+        return LSPosedBridge.doHookAfter(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @Override
+    @NonNull
+    public MethodUnhooker<Hooker<Method>, Method> hook(@NonNull Method origin, @NonNull Hooker<Method> hooker){
+        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @NonNull
+    @Override
+    public MethodUnhooker<BeforeHooker<Method>, Method> hookBefore(@NonNull Method origin, int priority, @NonNull BeforeHooker<Method> hooker) {
+        return LSPosedBridge.doHookBefore(origin, priority, hooker);
+    }
+
+    @NonNull
+    @Override
+    public MethodUnhooker<AfterHooker<Method>, Method> hookAfter(@NonNull Method origin, int priority, @NonNull AfterHooker<Method> hooker) {
+        return LSPosedBridge.doHookAfter(origin, priority, hooker);
+    }
+
+    @Override
+    @NonNull
+    public MethodUnhooker<Hooker<Method>, Method> hook(@NonNull Method origin, int priority, @NonNull Hooker<Method> hooker) {
+        return LSPosedBridge.doHook(origin, priority, hooker);
+    }
+
+    @NonNull
+    @Override
+    public <T> MethodUnhooker<BeforeHooker<Constructor<T>>, Constructor<T>> hookBefore(@NonNull Constructor<T> origin, @NonNull BeforeHooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @NonNull
+    @Override
+    public <T> MethodUnhooker<AfterHooker<Constructor<T>>, Constructor<T>> hookAfter(@NonNull Constructor<T> origin, @NonNull AfterHooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHookAfter(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @Override
+    @NonNull
+    public <T> MethodUnhooker<Hooker<Constructor<T>>, Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Hooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @Override
+    @NonNull
+    public <T> MethodUnhooker<Hooker<Constructor<T>>, Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Hooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHook(origin, priority, hooker);
+    }
+
+
+    @NonNull
+    @Override
+    public <T> MethodUnhooker<BeforeHooker<Constructor<T>>, Constructor<T>> hookBefore(@NonNull Constructor<T> origin, int priority, @NonNull BeforeHooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
+    }
+
+    @NonNull
+    @Override
+    public <T> MethodUnhooker<AfterHooker<Constructor<T>>, Constructor<T>> hookAfter(@NonNull Constructor<T> origin, int priority, @NonNull AfterHooker<Constructor<T>> hooker) {
+        return LSPosedBridge.doHookAfter(origin, priority, hooker);
     }
 }

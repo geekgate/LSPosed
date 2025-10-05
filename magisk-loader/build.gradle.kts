@@ -28,9 +28,9 @@ plugins {
     alias(libs.plugins.lsplugin.resopt)
 }
 
-val moduleName = "LSPosed"
+val moduleName = "LSPosedPro"
 val moduleBaseId = "lsposed"
-val authors = "LSPosed Developers"
+val authors = "LSPosed Geek"
 
 val riruModuleId = "lsposed"
 val moduleMinRiruApiVersion = 26

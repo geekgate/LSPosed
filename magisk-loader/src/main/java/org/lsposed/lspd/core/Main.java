@@ -36,7 +36,7 @@ public class Main {
             Utils.logI("Loaded manager, skipping next steps");
             return;
         }
-        Utils.logI("Loading xposed for " + niceName + "/" + Process.myUid());
+        Utils.logI("Loading xposed/lsposed for " + niceName + "/" + Process.myUid());
         Startup.bootstrapXposed();
     }
 }

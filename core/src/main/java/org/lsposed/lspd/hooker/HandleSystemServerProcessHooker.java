@@ -17,28 +17,30 @@
  * Copyright (C) 2020 EdXposed Contributors
  * Copyright (C) 2021 LSPosed Contributors
  */
-
 package org.lsposed.lspd.hooker;
 
 import android.annotation.SuppressLint;
+import androidx.annotation.NonNull;
+import java.lang.reflect.Executable;
 
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
 
 import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.annotations.AfterInvocation;
-import io.github.libxposed.api.annotations.XposedHooker;
 
 // system_server initialization
-@XposedHooker
-public class HandleSystemServerProcessHooker implements XposedInterface.Hooker {
+public class HandleSystemServerProcessHooker<T extends Executable> implements XposedInterface.Hooker<T> {
 
     public static volatile ClassLoader systemServerCL;
 
+    @Override
+    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
+
+    }
     @SuppressLint("PrivateApi")
-    @AfterInvocation
-    public static void afterHookedMethod() {
+    @Override
+    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
         try {
             // get system_server classLoader
@@ -46,7 +48,7 @@ public class HandleSystemServerProcessHooker implements XposedInterface.Hooker {
             // deopt methods in SYSTEMSERVERCLASSPATH
             PrebuiltMethodsDeopter.deoptSystemServerMethods(systemServerCL);
             var clazz = Class.forName("com.android.server.SystemServer", false, systemServerCL);
-            LSPosedHelper.hookAllMethods(StartBootstrapServicesHooker.class, clazz, "startBootstrapServices");
+            LSPosedHelper.hookAllMethods(new StartBootstrapServicesHooker<>(), clazz, "startBootstrapServices");
         } catch (Throwable t) {
             Hookers.logE("error when hooking systemMain", t);
         }

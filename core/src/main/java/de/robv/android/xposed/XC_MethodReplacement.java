@@ -46,7 +46,7 @@ public abstract class XC_MethodReplacement extends XC_MethodHook {
      * @hide
      */
     @Override
-    protected final void beforeHookedMethod(MethodHookParam param) throws Throwable {
+    protected final void beforeHookedMethod(MethodHookParam<?> param) throws Throwable {
         try {
             Object result = replaceHookedMethod(param);
             param.setResult(result);
@@ -61,7 +61,7 @@ public abstract class XC_MethodReplacement extends XC_MethodHook {
      */
     @Override
     @SuppressWarnings("EmptyMethod")
-    protected final void afterHookedMethod(MethodHookParam param) throws Throwable {
+    protected final void afterHookedMethod(MethodHookParam<?> param) throws Throwable {
     }
 
     /**
@@ -74,14 +74,14 @@ public abstract class XC_MethodReplacement extends XC_MethodHook {
      * @throws Throwable Anything that is thrown by the callback will be passed on to the original caller.
      */
     @SuppressWarnings("UnusedParameters")
-    protected abstract Object replaceHookedMethod(MethodHookParam param) throws Throwable;
+    protected abstract Object replaceHookedMethod(MethodHookParam<?> param) throws Throwable;
 
     /**
      * Predefined callback that skips the method without replacements.
      */
     public static final XC_MethodReplacement DO_NOTHING = new XC_MethodReplacement(PRIORITY_HIGHEST * 2) {
         @Override
-        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
+        protected Object replaceHookedMethod(MethodHookParam<?> param) throws Throwable {
             return null;
         }
     };
@@ -104,7 +104,7 @@ public abstract class XC_MethodReplacement extends XC_MethodHook {
     public static XC_MethodReplacement returnConstant(int priority, final Object result) {
         return new XC_MethodReplacement(priority) {
             @Override
-            protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
+            protected Object replaceHookedMethod(MethodHookParam<?> param) throws Throwable {
                 return result;
             }
         };

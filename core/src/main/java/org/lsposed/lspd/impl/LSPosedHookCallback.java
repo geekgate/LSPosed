@@ -4,11 +4,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.reflect.Executable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
+import java.util.ConcurrentModificationException;
 
 import io.github.libxposed.api.XposedInterface;
 
-public class LSPosedHookCallback<T extends Executable> implements XposedInterface.BeforeHookCallback, XposedInterface.AfterHookCallback {
+public class LSPosedHookCallback<T extends Executable> implements XposedInterface.BeforeHookCallback<T>, XposedInterface.AfterHookCallback<T> {
 
     public Member method;
 
@@ -27,22 +29,34 @@ public class LSPosedHookCallback<T extends Executable> implements XposedInterfac
 
     // Both before and after
 
+
     @NonNull
     @Override
-    public Member getMember() {
-        return this.method;
+    public T getOrigin() {
+        return null;
     }
 
     @Nullable
     @Override
-    public Object getThisObject() {
-        return this.thisObject;
+    public Object getThis() {
+        return null;
     }
 
     @NonNull
     @Override
     public Object[] getArgs() {
         return this.args;
+    }
+
+    @Nullable
+    @Override
+    public <U> U getArg(int index) {
+        return null;
+    }
+
+    @Override
+    public <U> void setArg(int index, U value) {
+
     }
 
     // Before
@@ -59,6 +73,17 @@ public class LSPosedHookCallback<T extends Executable> implements XposedInterfac
         this.result = null;
         this.throwable = throwable;
         this.isSkipped = true;
+    }
+
+    @Nullable
+    @Override
+    public Object invokeOrigin() throws InvocationTargetException, IllegalAccessException {
+        return null;
+    }
+
+    @Override
+    public <U> void setExtra(@NonNull String key, @Nullable U value) throws ConcurrentModificationException {
+
     }
 
     // After
@@ -90,5 +115,11 @@ public class LSPosedHookCallback<T extends Executable> implements XposedInterfac
     public void setThrowable(@Nullable Throwable throwable) {
         this.result = null;
         this.throwable = throwable;
+    }
+
+    @Nullable
+    @Override
+    public <U> U getExtra(@NonNull String key) {
+        return null;
     }
 }

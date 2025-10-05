@@ -153,6 +153,11 @@ public class LSPModuleService extends IXposedService.Stub {
     }
 
     @Override
+    public Bundle featuredMethod(String name, Bundle args) throws RemoteException {
+        return null;
+    }
+
+    @Override
     public List<String> getScope() throws RemoteException {
         ensureModule();
         ArrayList<String> res = new ArrayList<>();
@@ -229,7 +234,6 @@ public class LSPModuleService extends IXposedService.Stub {
         var userId = ensureModule();
         ConfigManager.getInstance().deleteModulePrefs(loadedModule.packageName, userId, group);
     }
-
     @Override
     public String[] listRemoteFiles() throws RemoteException {
         var userId = ensureModule();
@@ -243,12 +247,13 @@ public class LSPModuleService extends IXposedService.Stub {
     }
 
     @Override
-    public ParcelFileDescriptor openRemoteFile(String path) throws RemoteException {
+    public ParcelFileDescriptor openRemoteFile(String path, int mode) throws RemoteException {
         var userId = ensureModule();
         ConfigFileManager.ensureModuleFilePath(path);
         try {
             var dir = ConfigFileManager.resolveModuleDir(loadedModule.packageName, FILES_DIR, userId, Binder.getCallingUid());
-            return ParcelFileDescriptor.open(dir.resolve(path).toFile(), ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_READ_WRITE);
+            // ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_READ_WRITE
+            return ParcelFileDescriptor.open(dir.resolve(path).toFile(), mode);
         } catch (IOException e) {
             throw new RemoteException(e.getMessage());
         }

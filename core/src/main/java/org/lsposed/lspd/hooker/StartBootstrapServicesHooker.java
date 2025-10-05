@@ -27,19 +27,18 @@ import androidx.annotation.NonNull;
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
 
+import java.lang.reflect.Executable;
+
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModuleInterface;
-import io.github.libxposed.api.annotations.BeforeInvocation;
-import io.github.libxposed.api.annotations.XposedHooker;
 
-@XposedHooker
-public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
+public class StartBootstrapServicesHooker<T extends Executable> implements XposedInterface.Hooker<T> {
 
-    @BeforeInvocation
-    public static void beforeHookedMethod() {
+    @Override
+    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
         logD("SystemServer#startBootstrapServices() starts");
 
         try {
@@ -53,15 +52,13 @@ public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
             lpparam.isFirstApplication = true;
             XC_LoadPackage.callAll(lpparam);
 
-            LSPosedContext.callOnSystemServerLoaded(new XposedModuleInterface.SystemServerLoadedParam() {
-                @Override
-                @NonNull
-                public ClassLoader getClassLoader() {
-                    return HandleSystemServerProcessHooker.systemServerCL;
-                }
-            });
+            LSPosedContext.callOnSystemServerLoaded(() -> HandleSystemServerProcessHooker.systemServerCL);
         } catch (Throwable t) {
             Hookers.logE("error when hooking startBootstrapServices", t);
         }
     }
+    @Override
+    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+    }
+
 }

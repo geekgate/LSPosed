@@ -48,19 +48,19 @@ import de.robv.android.xposed.XposedInit;
 public class Startup {
     private static void startBootstrapHook(boolean isSystem) {
         Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
-        LSPosedHelper.hookMethod(CrashDumpHooker.class, Thread.class, "dispatchUncaughtException", Throwable.class);
+        LSPosedHelper.hookMethod(new CrashDumpHooker<>(), Thread.class, "dispatchUncaughtException", Throwable.class);
         if (isSystem) {
-            LSPosedHelper.hookAllMethods(HandleSystemServerProcessHooker.class, ZygoteInit.class, "handleSystemServerProcess");
+            LSPosedHelper.hookAllMethods(new HandleSystemServerProcessHooker<>(), ZygoteInit.class, "handleSystemServerProcess");
         } else {
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openDexFile");
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFile");
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFiles");
+            LSPosedHelper.hookAllMethods(new OpenDexFileHooker<>(), DexFile.class, "openDexFile");
+            LSPosedHelper.hookAllMethods(new OpenDexFileHooker<>(), DexFile.class, "openInMemoryDexFile");
+            LSPosedHelper.hookAllMethods(new OpenDexFileHooker<>(), DexFile.class, "openInMemoryDexFiles");
         }
-        LSPosedHelper.hookConstructor(LoadedApkCtorHooker.class, LoadedApk.class,
+        LSPosedHelper.hookConstructor(new LoadedApkCtorHooker<>(), LoadedApk.class,
                 ActivityThread.class, ApplicationInfo.class, CompatibilityInfo.class,
                 ClassLoader.class, boolean.class, boolean.class, boolean.class);
-        LSPosedHelper.hookMethod(LoadedApkCreateCLHooker.class, LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class);
-        LSPosedHelper.hookAllMethods(AttachHooker.class, ActivityThread.class, "attach");
+        LSPosedHelper.hookMethod(new LoadedApkCreateCLHooker<>(), LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class);
+        LSPosedHelper.hookAllMethods(new AttachHooker<>(), ActivityThread.class, "attach");
     }
 
     public static void bootstrapXposed() {

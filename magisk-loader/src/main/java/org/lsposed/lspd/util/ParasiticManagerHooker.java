@@ -104,7 +104,7 @@ public class ParasiticManagerHooker {
     private static void hookForManager(ILSPManagerService managerService) {
         var managerApkHooker = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam<?> param) {
                 Hookers.logD("ActivityThread#handleBindApplication() starts");
                 Object bindData = param.args[0];
                 ApplicationInfo appInfo = (ApplicationInfo) XposedHelpers.getObjectField(bindData, "appInfo");
@@ -120,7 +120,7 @@ public class ParasiticManagerHooker {
         unhooks[0] = XposedHelpers.findAndHookMethod(
                 LoadedApk.class, "getClassLoader", new XC_MethodHook() {
                     @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
+                    protected void afterHookedMethod(MethodHookParam<?> param) {
                         var pkgInfo = getManagerPkgInfo(null);
                         if (pkgInfo != null && XposedHelpers.getObjectField(param.thisObject, "mApplicationInfo") == pkgInfo.applicationInfo) {
                             sendBinderToManager((ClassLoader) param.getResult(), managerService.asBinder());
@@ -132,10 +132,9 @@ public class ParasiticManagerHooker {
         var activityClientRecordClass = XposedHelpers.findClass("android.app.ActivityThread$ActivityClientRecord", ActivityThread.class.getClassLoader());
         var activityHooker = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam<?> param) {
                 for (var i = 0; i < param.args.length; ++i) {
-                    if (param.args[i] instanceof ActivityInfo) {
-                        var aInfo = (ActivityInfo) param.args[i];
+                    if (param.args[i] instanceof ActivityInfo aInfo) {
                         var pkgInfo = getManagerPkgInfo(aInfo.applicationInfo);
                         if (pkgInfo == null) return;
                         for (var activity : pkgInfo.activities) {
@@ -145,8 +144,7 @@ public class ParasiticManagerHooker {
                             }
                         }
                     }
-                    if (param.args[i] instanceof Intent) {
-                        var intent = (Intent) param.args[i];
+                    if (param.args[i] instanceof Intent intent) {
                         checkIntent(managerService, intent);
                         intent.setComponent(new ComponentName(intent.getComponent().getPackageName(), "org.lsposed.manager.ui.activity.MainActivity"));
                     }
@@ -177,10 +175,9 @@ public class ParasiticManagerHooker {
             }
 
             @Override
-            protected void afterHookedMethod(MethodHookParam param) {
+            protected void afterHookedMethod(MethodHookParam<?> param) {
                 for (var i = 0; i < param.args.length && activityClientRecordClass.isInstance(param.thisObject); ++i) {
-                    if (param.args[i] instanceof ActivityInfo) {
-                        var aInfo = (ActivityInfo) param.args[i];
+                    if (param.args[i] instanceof ActivityInfo aInfo) {
                         Hookers.logD("loading state of " + aInfo.name);
                         states.computeIfPresent(aInfo.name, (k, v) -> {
                             XposedHelpers.setObjectField(param.thisObject, "state", v);
@@ -202,7 +199,7 @@ public class ParasiticManagerHooker {
 
         XposedBridge.hookAllMethods(ActivityThread.class, "handleReceiver", new XC_MethodReplacement() {
             @Override
-            protected Object replaceHookedMethod(MethodHookParam param) {
+            protected Object replaceHookedMethod(MethodHookParam<?> param) {
                 for (var arg : param.args) {
                     if (arg instanceof BroadcastReceiver.PendingResult) {
                         ((BroadcastReceiver.PendingResult) arg).finish();
@@ -216,7 +213,7 @@ public class ParasiticManagerHooker {
             private Context originalContext = null;
 
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam<?> param) {
                 Hookers.logD("before install provider");
                 Context ctx = null;
                 ProviderInfo info = null;
@@ -249,7 +246,7 @@ public class ParasiticManagerHooker {
 
         XposedHelpers.findAndHookMethod(ActivityThread.class, "deliverNewIntents", activityClientRecordClass, List.class, new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam<?> param) {
                 if (param.args[1] == null) return;
                 for (var intent : (List<?>) param.args[1]) {
                     checkIntent(managerService, (Intent) intent);
@@ -259,7 +256,7 @@ public class ParasiticManagerHooker {
 
         XposedHelpers.findAndHookMethod(WebViewFactory.class, "getProvider", new XC_MethodReplacement() {
             @Override
-            protected Object replaceHookedMethod(MethodHookParam param) {
+            protected Object replaceHookedMethod(MethodHookParam<?> param) {
                 var sProviderInstance = XposedHelpers.getStaticObjectField(WebViewFactory.class, "sProviderInstance");
                 if (sProviderInstance != null) return sProviderInstance;
                 //noinspection unchecked
@@ -289,7 +286,7 @@ public class ParasiticManagerHooker {
         });
         var stateHooker = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam<?> param) {
                 try {
                     var record = param.args[0];
                     if (record instanceof IBinder) {
@@ -332,7 +329,7 @@ public class ParasiticManagerHooker {
     static public boolean start() {
         List<IBinder> binder = new ArrayList<>(1);
         try (var managerParcelFd = serviceClient.requestInjectedManagerBinder(binder)) {
-            if (binder.size() > 0 && binder.get(0) != null && managerParcelFd != null) {
+            if (!binder.isEmpty() && binder.get(0) != null && managerParcelFd != null) {
                 managerFd = managerParcelFd.detachFd();
                 var managerService = ILSPManagerService.Stub.asInterface(binder.get(0));
                 hookForManager(managerService);

@@ -24,24 +24,30 @@ import android.app.LoadedApk;
 import android.content.res.XResources;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import org.lsposed.lspd.util.Hookers;
+
+import java.lang.reflect.Executable;
 
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
 import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.annotations.AfterInvocation;
-import io.github.libxposed.api.annotations.XposedHooker;
 
 // when a package is loaded for an existing process, trigger the callbacks as well
-@XposedHooker
-public class LoadedApkCtorHooker implements XposedInterface.Hooker {
+public class LoadedApkCtorHooker<T extends Executable> implements XposedInterface.Hooker<T> {
 
-    @AfterInvocation
-    public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
+    @Override
+    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
+
+    }
+
+    @Override
+    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
         Hookers.logD("LoadedApk#<init> starts");
 
         try {
-            LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
+            LoadedApk loadedApk = (LoadedApk) callback.getThis();
             assert loadedApk != null;
             String packageName = loadedApk.getPackageName();
             Object mAppDir = XposedHelpers.getObjectField(loadedApk, "mAppDir");

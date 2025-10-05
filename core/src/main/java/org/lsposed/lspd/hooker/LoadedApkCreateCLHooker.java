@@ -37,6 +37,7 @@ import org.lsposed.lspd.util.Utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Optional;
@@ -51,12 +52,9 @@ import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModuleInterface;
-import io.github.libxposed.api.annotations.AfterInvocation;
-import io.github.libxposed.api.annotations.XposedHooker;
 
 @SuppressLint("BlockedPrivateApi")
-@XposedHooker
-public class LoadedApkCreateCLHooker implements XposedInterface.Hooker {
+public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInterface.Hooker<T> {
     private final static Field defaultClassLoaderField;
 
     private final static Set<LoadedApk> loadedApks = ConcurrentHashMap.newKeySet();
@@ -77,9 +75,14 @@ public class LoadedApkCreateCLHooker implements XposedInterface.Hooker {
         loadedApks.add(loadedApk);
     }
 
-    @AfterInvocation
-    public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
-        LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
+    @Override
+    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
+
+    }
+    @Override
+    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+
+        LoadedApk loadedApk = (LoadedApk) callback.getThis();
 
         if (callback.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
@@ -139,7 +142,7 @@ public class LoadedApkCreateCLHooker implements XposedInterface.Hooker {
 
                 @NonNull
                 @Override
-                public ApplicationInfo getApplicationInfo() {
+                public ApplicationInfo getAppInfo() {
                     return loadedApk.getApplicationInfo();
                 }
 
