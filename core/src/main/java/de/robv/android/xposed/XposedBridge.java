@@ -397,7 +397,7 @@ public final class XposedBridge {
         }
 
         public void handleBefore() {
-            syncronizeApi(param, callback, true);
+            synchronizedApi(param, callback, true);
             for (beforeIdx = 0; beforeIdx < snapshot.length; beforeIdx++) {
                 try {
                     var cb = (XC_MethodHook) snapshot[beforeIdx];
@@ -417,11 +417,11 @@ public final class XposedBridge {
                     break;
                 }
             }
-            syncronizeApi(param, callback, false);
+            synchronizedApi(param, callback, false);
         }
 
         public void handleAfter() {
-            syncronizeApi(param, callback, true);
+            synchronizedApi(param, callback, true);
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
                 Object lastResult = param.getResult();
                 Throwable lastThrowable = param.getThrowable();
@@ -439,10 +439,10 @@ public final class XposedBridge {
                     }
                 }
             }
-            syncronizeApi(param, callback, false);
+            synchronizedApi(param, callback, false);
         }
 
-        private void syncronizeApi(XC_MethodHook.MethodHookParam<T> param, LSPosedHookCallback<T> callback, boolean forward) {
+        private void synchronizedApi(XC_MethodHook.MethodHookParam<T> param, LSPosedHookCallback<T> callback, boolean forward) {
             if (forward) {
                 param.method = callback.method;
                 param.thisObject = callback.thisObject;

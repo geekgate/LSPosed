@@ -32,6 +32,7 @@ namespace {
 struct ModuleCallback {
     jmethodID before_method;
     jmethodID after_method;
+    jobject callback;
 };
 
 struct HookItem {
@@ -124,6 +125,7 @@ LSP_DEF_NATIVE_METHOD(jboolean, HookBridge, hookMethod, jboolean useModernApi, j
         auto callback_type = ModuleCallback {
                 .before_method = env->FromReflectedMethod(before_method),
                 .after_method = env->FromReflectedMethod(after_method),
+                .callback = env->NewGlobalRef(callback)
         };
         hook_item->modern_callbacks.emplace(priority, callback_type);
     } else {
@@ -311,7 +313,8 @@ LSP_DEF_NATIVE_METHOD(jobjectArray, HookBridge, callbackSnapshot, jclass callbac
     for (jsize i = 0; auto callback: hook_item->modern_callbacks) {
         auto before_method = JNI_ToReflectedMethod(env, clazz, callback.second.before_method, JNI_TRUE);
         auto after_method = JNI_ToReflectedMethod(env, clazz, callback.second.after_method, JNI_TRUE);
-        auto callback_object = JNI_NewObject(env, callback_class, callback_ctor, before_method, after_method);
+        auto callback_hooker = env->NewLocalRef(callback.second.callback);
+        auto callback_object = JNI_NewObject(env, callback_class, callback_ctor, before_method, after_method, callback_hooker);
         env->SetObjectArrayElement(modern, i++, env->NewLocalRef(callback_object));
     }
     for (jsize i = 0; auto callback: hook_item->legacy_callbacks) {

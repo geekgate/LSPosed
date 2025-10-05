@@ -38,15 +38,24 @@ public class LSPosedBridge {
         final Method beforeInvocation;
         @NonNull
         final Method afterInvocation;
+        final Object thisObject;
 
         final int beforeParams;
         final int afterParams;
 
+        public HookerCallback(@NonNull Method beforeInvocation, @NonNull Method afterInvocation, Object thisObject) {
+            this.beforeInvocation = beforeInvocation;
+            this.afterInvocation = afterInvocation;
+            this.beforeParams = beforeInvocation.getParameterCount();
+            this.afterParams = afterInvocation.getParameterCount();
+            this.thisObject = thisObject;
+        }
         public HookerCallback(@NonNull Method beforeInvocation, @NonNull Method afterInvocation) {
             this.beforeInvocation = beforeInvocation;
             this.afterInvocation = afterInvocation;
             this.beforeParams = beforeInvocation.getParameterCount();
             this.afterParams = afterInvocation.getParameterCount();
+            this.thisObject = null;
         }
     }
 
@@ -124,9 +133,9 @@ public class LSPosedBridge {
                 try {
                     var hooker = (HookerCallback) modernSnapshot[beforeIdx];
                     if (hooker.beforeParams == 0) {
-                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(null);
+                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(hooker.thisObject);
                     } else {
-                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(null, callback);
+                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(hooker.thisObject, callback);
                     }
                 } catch (Throwable t) {
                     LSPosedBridge.log(t);
@@ -168,11 +177,11 @@ public class LSPosedBridge {
                 var hooker = (HookerCallback) modernSnapshot[afterIdx];
                 try {
                     if (hooker.afterParams == 0) {
-                        hooker.afterInvocation.invoke(null);
+                        hooker.afterInvocation.invoke(hooker.thisObject);
                     } else if (hooker.afterParams == 1) {
-                        hooker.afterInvocation.invoke(null, callback);
+                        hooker.afterInvocation.invoke(hooker.thisObject, callback);
                     } else {
-                        hooker.afterInvocation.invoke(null, callback, ctxArray[afterIdx]);
+                        hooker.afterInvocation.invoke(hooker.thisObject, callback, ctxArray[afterIdx]);
                     }
                 } catch (Throwable t) {
                     LSPosedBridge.log(t);
@@ -249,7 +258,7 @@ public class LSPosedBridge {
         } catch (NoSuchMethodException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
-        return new HookerCallback(beforeInvocation, afterInvocation);
+        return new HookerCallback(beforeInvocation, afterInvocation, hooker);
     }
 
     @NonNull

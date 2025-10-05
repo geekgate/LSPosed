@@ -406,7 +406,6 @@ public class LSPosedContext implements XposedInterface {
         return LSPosedBridge.doHook(origin, priority, hooker);
     }
 
-
     @NonNull
     @Override
     public <T> MethodUnhooker<BeforeHooker<Constructor<T>>, Constructor<T>> hookBefore(@NonNull Constructor<T> origin, int priority, @NonNull BeforeHooker<Constructor<T>> hooker) {
