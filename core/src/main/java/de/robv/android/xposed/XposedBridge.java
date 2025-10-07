@@ -422,11 +422,12 @@ public final class XposedBridge {
 
         public void handleBefore() {
             for (beforeIdx = 0; beforeIdx < snapshot.length; beforeIdx++) {
-                var param = getParam();
                 try {
                     var cb = snapshot[beforeIdx];
                     if (cb instanceof XC_MethodHook x) {
+                        var param = getParam();
                         x.beforeHookedMethod(param);
+                        refresh(param);
                     } else if (cb instanceof XposedInterface.Hook x) {
                         x.inject(context, context.args);
                     } else if (cb instanceof XposedInterface.PreInjector x) {
@@ -436,14 +437,12 @@ public final class XposedBridge {
                     XposedBridge.log(t);
 
                     // reset result (ignoring what the unexpectedly exiting callback did)
-                    param.setResult(null);
-                    param.returnEarly = false;
+                    context.setResult(null);
+                    context.isSkipped = false;
                     continue;
                 }
 
-                refresh(param);
-
-                if (param.returnEarly) {
+                if (context.isSkipped) {
                     // skip remaining "before" callbacks and corresponding "after" callbacks
                     beforeIdx++;
                     break;
@@ -455,11 +454,12 @@ public final class XposedBridge {
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
                 Object lastResult = context.getResult();
                 Throwable lastThrowable = context.getThrowable();
-                var param = getParam();
                 try {
                     var cb = snapshot[afterIdx];
                     if (cb instanceof XC_MethodHook x) {
+                        var param = getParam();
                         x.afterHookedMethod(param);
+                        refresh(param);
                     } else if (cb instanceof XposedInterface.Hook x) {
                         x.inject(context, lastResult, lastThrowable);
                     } else if (cb instanceof XposedInterface.PostInjector x) {
@@ -470,12 +470,11 @@ public final class XposedBridge {
 
                     // reset to last result (ignoring what the unexpectedly exiting callback did)
                     if (lastThrowable == null) {
-                        param.setResult(lastResult);
+                        context.setResult(lastResult);
                     } else {
-                        param.setThrowable(lastThrowable);
+                        context.setThrowable(lastThrowable);
                     }
                 }
-                refresh(param);
             }
         }
     }
