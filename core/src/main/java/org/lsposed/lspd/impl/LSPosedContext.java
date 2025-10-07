@@ -4,6 +4,9 @@ import android.annotation.SuppressLint;
 import android.app.ActivityThread;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Process;
@@ -42,7 +45,6 @@ import io.github.libxposed.api.XposedModuleInterface;
 import io.github.libxposed.api.errors.XposedFrameworkError;
 import io.github.libxposed.api.utils.DexParser;
 
-
 @SuppressLint("NewApi")
 public class LSPosedContext implements XposedInterface {
 
@@ -56,6 +58,8 @@ public class LSPosedContext implements XposedInterface {
 
     private final String mPackageName;
     private final ApplicationInfo mApplicationInfo;
+    private final PackageInfo mPackageInfo;
+    private final ActivityThread mActivityThread;
     private final ILSPInjectedModuleService service;
     private final Map<String, SharedPreferences> mRemotePrefs = new ConcurrentHashMap<>();
 
@@ -74,9 +78,11 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
-    LSPosedContext(String packageName, ApplicationInfo applicationInfo, ILSPInjectedModuleService service) {
+    LSPosedContext(String packageName, ApplicationInfo applicationInfo, ActivityThread at, ILSPInjectedModuleService service) throws PackageManager.NameNotFoundException {
         this.mPackageName = packageName;
         this.mApplicationInfo = applicationInfo;
+        this.mPackageInfo = at.getSystemContext().getPackageManager().getPackageInfo(packageName, PackageManager.GET_META_DATA);
+        this.mActivityThread = at;
         this.service = service;
     }
 
@@ -118,7 +124,8 @@ public class LSPosedContext implements XposedInterface {
                 Log.e(TAG, "  This may cause strange issues and must be fixed by the module developer.");
                 return false;
             }
-            var ctx = new LSPosedContext(module.packageName, module.applicationInfo, module.service);
+
+            var ctx = new LSPosedContext(module.packageName, module.applicationInfo, at, module.service);
             for (var entry : module.file.moduleClassNames) {
                 var moduleClass = mcl.loadClass(entry);
                 Log.d(TAG, "  Loading class " + moduleClass);
@@ -154,14 +161,12 @@ public class LSPosedContext implements XposedInterface {
         return true;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public String getFrameworkName() {
         return BuildConfig.FRAMEWORK_NAME;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public String getFrameworkVersion() {
         return BuildConfig.VERSION_NAME;
     }
@@ -199,8 +204,7 @@ public class LSPosedContext implements XposedInterface {
         return doDeoptimize(constructor);
     }
 
-    @Nullable
-    @Override
+    @Nullable @Override
     public Object invokeOrigin(@NonNull Method method, @Nullable Object thisObject, Object[] args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException {
         return HookBridge.invokeOriginalMethod(method, thisObject, args);
     }
@@ -240,8 +244,7 @@ public class LSPosedContext implements XposedInterface {
         return shorty;
     }
 
-    @Nullable
-    @Override
+    @Nullable @Override
     public Object invokeSpecial(@NonNull Method method, @NonNull Object thisObject, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException {
         if (Modifier.isStatic(method.getModifiers())) {
             throw new IllegalArgumentException("Cannot invoke special on static method: " + method);
@@ -249,16 +252,14 @@ public class LSPosedContext implements XposedInterface {
         return HookBridge.invokeSpecialMethod(method, getExecutableShorty(method), method.getDeclaringClass(), thisObject, args);
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public <T> T newInstanceOrigin(@NonNull Constructor<T> constructor, Object... args) throws InvocationTargetException, IllegalAccessException, InstantiationException {
         var obj = HookBridge.allocateObject(constructor.getDeclaringClass());
         HookBridge.invokeOriginalMethod(constructor, obj, args);
         return obj;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public <T, U> U newInstanceSpecial(@NonNull Constructor<T> constructor, @NonNull Class<U> subClass, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException, InstantiationException {
         var superClass = constructor.getDeclaringClass();
         if (!superClass.isAssignableFrom(subClass)) {
@@ -294,14 +295,27 @@ public class LSPosedContext implements XposedInterface {
         return null;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public ApplicationInfo getApplicationInfo() {
         return mApplicationInfo;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
+    public PackageInfo getPackageInfo() {
+        return mPackageInfo;
+    }
+
+    @NonNull @Override
+    public AssetManager getAssetManager() {
+        return mActivityThread.getSystemContext().getAssets();
+    }
+
+    @NonNull @Override
+    public android.content.Context getSystemContext() {
+        return mActivityThread.getSystemContext();
+    }
+
+    @NonNull @Override
     public SharedPreferences getSharedPreferences(String name, int mode) {
         if (name == null) throw new IllegalArgumentException("name must not be null");
         return mRemotePrefs.computeIfAbsent(name, n -> {
@@ -314,8 +328,7 @@ public class LSPosedContext implements XposedInterface {
         });
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public String[] fileList() {
         try {
             return service.getRemoteFileList();
@@ -325,8 +338,7 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public FileInputStream openFileInput(String name) throws FileNotFoundException {
         if (name == null) throw new IllegalArgumentException("name must not be null");
         return new FileInputStream(name);
@@ -339,82 +351,29 @@ public class LSPosedContext implements XposedInterface {
 //        }
     }
 
-
-    @Nullable
-    @Override
+    @Nullable @Override
     public Object featuredMethod(String name, Object... args) {
         return null;
     }
 
-    @NonNull
-    @Override
-    public MethodUnhooker<BeforeHooker<Method>, Method> hookBefore(@NonNull Method origin, @NonNull BeforeHooker<Method> hooker) {
-        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
+    @Override @NonNull
+    public Unhooker hook(@NonNull Method origin, @NonNull Injector injector){
+        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
-    @NonNull
-    @Override
-    public MethodUnhooker<AfterHooker<Method>, Method> hookAfter(@NonNull Method origin, @NonNull AfterHooker<Method> hooker) {
-        return LSPosedBridge.doHookAfter(origin, PRIORITY_DEFAULT, hooker);
+    @Override @NonNull
+    public Unhooker hook(@NonNull Method origin, int priority, @NonNull Injector injector) {
+        return LSPosedBridge.hook(origin, priority, injector);
     }
 
-    @Override
-    @NonNull
-    public MethodUnhooker<Hooker<Method>, Method> hook(@NonNull Method origin, @NonNull Hooker<Method> hooker){
-        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
+    @Override @NonNull
+    public Unhooker hook(@NonNull Constructor<?> origin, @NonNull Injector injector) {
+        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
-    @NonNull
-    @Override
-    public MethodUnhooker<BeforeHooker<Method>, Method> hookBefore(@NonNull Method origin, int priority, @NonNull BeforeHooker<Method> hooker) {
-        return LSPosedBridge.doHookBefore(origin, priority, hooker);
+    @Override @NonNull
+    public Unhooker hook(@NonNull Constructor<?> origin, int priority, @NonNull Injector injector) {
+        return LSPosedBridge.hook(origin, priority, injector);
     }
 
-    @NonNull
-    @Override
-    public MethodUnhooker<AfterHooker<Method>, Method> hookAfter(@NonNull Method origin, int priority, @NonNull AfterHooker<Method> hooker) {
-        return LSPosedBridge.doHookAfter(origin, priority, hooker);
-    }
-
-    @Override
-    @NonNull
-    public MethodUnhooker<Hooker<Method>, Method> hook(@NonNull Method origin, int priority, @NonNull Hooker<Method> hooker) {
-        return LSPosedBridge.doHook(origin, priority, hooker);
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<BeforeHooker<Constructor<T>>, Constructor<T>> hookBefore(@NonNull Constructor<T> origin, @NonNull BeforeHooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<AfterHooker<Constructor<T>>, Constructor<T>> hookAfter(@NonNull Constructor<T> origin, @NonNull AfterHooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHookAfter(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @Override
-    @NonNull
-    public <T> MethodUnhooker<Hooker<Constructor<T>>, Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Hooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHook(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @Override
-    @NonNull
-    public <T> MethodUnhooker<Hooker<Constructor<T>>, Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Hooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHook(origin, priority, hooker);
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<BeforeHooker<Constructor<T>>, Constructor<T>> hookBefore(@NonNull Constructor<T> origin, int priority, @NonNull BeforeHooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHookBefore(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<AfterHooker<Constructor<T>>, Constructor<T>> hookAfter(@NonNull Constructor<T> origin, int priority, @NonNull AfterHooker<Constructor<T>> hooker) {
-        return LSPosedBridge.doHookAfter(origin, priority, hooker);
-    }
 }

@@ -1,11 +1,14 @@
 package org.lsposed.lspd.impl;
 
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.lsposed.lspd.nativebridge.HookBridge;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,6 +25,7 @@ public class LSPosedBridge {
     private static final String castException = "Return value's type from hook callback does not match the hooked method";
 
     private static final Method getCause;
+    private static final Class<?> objArrayClass = Object[].class;
 
     static {
         Method tmp;
@@ -68,10 +72,30 @@ public class LSPosedBridge {
         Log.e(TAG, logStr);
     }
 
+    @Nullable
+    public static Pair<Method, Method> getInjectorMethod(@NonNull XposedInterface.Injector injector) {
+        Method pre = null, post = null;
+        for (Method m : injector.getClass().getDeclaredMethods()) {
+            Class<?>[] ps = m.getParameterTypes();
+            if (ps.length == 2 && ps[0] == XposedInterface.BeforeHookContext.class && ps[1] == objArrayClass) {
+                pre = m;
+                continue;
+            }
+            if (ps.length == 3 && ps[0] == XposedInterface.AfterHookContext.class && ps[1] == Object.class && ps[2] == Throwable.class) {
+                post = m;
+            }
+        }
+        if (pre == null && post == null) {
+            return null;
+        }
+        return new Pair<>(pre, post);
+    }
+
     public static class NativeHooker<T extends Executable> {
         private final Object params;
+        private final ClassLoader classLoader;
 
-        private NativeHooker(Executable method) {
+        private NativeHooker(Executable method, ClassLoader classLoader) {
             var isStatic = Modifier.isStatic(method.getModifiers());
             Object returnType;
             if (method instanceof Method) {
@@ -84,12 +108,13 @@ public class LSPosedBridge {
                     returnType,
                     isStatic,
             };
+            this.classLoader = classLoader;
         }
 
         // This method is quite critical. We should try not to use system methods to avoid
         // endless recursive
         public Object callback(Object[] args) throws Throwable {
-            LSPosedHookCallback<T> callback = new LSPosedHookCallback<>();
+            LSPosedHookContext context = new LSPosedHookContext();
 
             var array = ((Object[]) params);
 
@@ -98,17 +123,18 @@ public class LSPosedBridge {
             var returnType = (Class<?>) array[1];
             var isStatic = (Boolean) array[2];
 
-            callback.method = method;
+            context.origin = method;
+            context.classLoader = classLoader;
 
             if (isStatic) {
-                callback.thisObject = null;
-                callback.args = args;
+                context.thisObject = null;
+                context.args = args;
             } else {
-                callback.thisObject = args[0];
-                callback.args = new Object[args.length - 1];
+                context.thisObject = args[0];
+                context.args = new Object[args.length - 1];
                 //noinspection ManualArrayCopy
                 for (int i = 0; i < args.length - 1; ++i) {
-                    callback.args[i] = args[i + 1];
+                    context.args[i] = args[i + 1];
                 }
             }
 
@@ -118,7 +144,7 @@ public class LSPosedBridge {
 
             if (modernSnapshot.length == 0 && legacySnapshot.length == 0) {
                 try {
-                    return HookBridge.invokeOriginalMethod(method, callback.thisObject, callback.args);
+                    return HookBridge.invokeOriginalMethod(method, context.thisObject, context.args);
                 } catch (InvocationTargetException ite) {
                     throw (Throwable) HookBridge.invokeOriginalMethod(getCause, ite);
                 }
@@ -135,62 +161,62 @@ public class LSPosedBridge {
                     if (hooker.beforeParams == 0) {
                         ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(hooker.thisObject);
                     } else {
-                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(hooker.thisObject, callback);
+                        ctxArray[beforeIdx] = hooker.beforeInvocation.invoke(hooker.thisObject, context);
                     }
                 } catch (Throwable t) {
                     LSPosedBridge.log(t);
 
-                    // reset result (ignoring what the unexpectedly exiting callback did)
-                    callback.setResult(null);
-                    callback.isSkipped = false;
+                    // reset result (ignoring what the unexpectedly exiting context did)
+                    context.setResult(null);
+                    context.isSkipped = false;
                     continue;
                 }
 
-                if (callback.isSkipped) {
+                if (context.isSkipped) {
                     // skip remaining "before" callbacks and corresponding "after" callbacks
                     beforeIdx++;
                     break;
                 }
             }
 
-            if (!callback.isSkipped && legacySnapshot.length != 0) {
+            if (!context.isSkipped && legacySnapshot.length != 0) {
                 // TODO: Separate classloader
-                legacy = new XposedBridge.LegacyApiSupport<>(callback, legacySnapshot);
+                legacy = new XposedBridge.LegacyApiSupport<>(context, legacySnapshot);
                 legacy.handleBefore();
             }
 
             // call original method if not requested otherwise
-            if (!callback.isSkipped) {
+            if (!context.isSkipped) {
                 try {
-                    var result = HookBridge.invokeOriginalMethod(method, callback.thisObject, callback.args);
-                    callback.setResult(result);
+                    var result = HookBridge.invokeOriginalMethod(method, context.thisObject, context.args);
+                    context.setResult(result);
                 } catch (InvocationTargetException e) {
                     var throwable = (Throwable) HookBridge.invokeOriginalMethod(getCause, e);
-                    callback.setThrowable(throwable);
+                    context.setThrowable(throwable);
                 }
             }
 
             // call "after method" callbacks
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
-                Object lastResult = callback.getResult();
-                Throwable lastThrowable = callback.getThrowable();
+                Object lastResult = context.getResult();
+                Throwable lastThrowable = context.getThrowable();
                 var hooker = (HookerCallback) modernSnapshot[afterIdx];
                 try {
                     if (hooker.afterParams == 0) {
                         hooker.afterInvocation.invoke(hooker.thisObject);
                     } else if (hooker.afterParams == 1) {
-                        hooker.afterInvocation.invoke(hooker.thisObject, callback);
+                        hooker.afterInvocation.invoke(hooker.thisObject, context);
                     } else {
-                        hooker.afterInvocation.invoke(hooker.thisObject, callback, ctxArray[afterIdx]);
+                        hooker.afterInvocation.invoke(hooker.thisObject, context, ctxArray[afterIdx]);
                     }
                 } catch (Throwable t) {
                     LSPosedBridge.log(t);
 
-                    // reset to last result (ignoring what the unexpectedly exiting callback did)
+                    // reset to last result (ignoring what the unexpectedly exiting context did)
                     if (lastThrowable == null) {
-                        callback.setResult(lastResult);
+                        context.setResult(lastResult);
                     } else {
-                        callback.setThrowable(lastThrowable);
+                        context.setThrowable(lastThrowable);
                     }
                 }
             }
@@ -200,11 +226,11 @@ public class LSPosedBridge {
             }
 
             // return
-            var t = callback.getThrowable();
+            var t = context.getThrowable();
             if (t != null) {
                 throw t;
             } else {
-                var result = callback.getResult();
+                var result = context.getResult();
                 if (returnType != null && !returnType.isPrimitive() && !HookBridge.instanceOf(result, returnType)) {
                     throw new ClassCastException(castException);
                 }
@@ -214,142 +240,47 @@ public class LSPosedBridge {
     }
 
     @NonNull
-    public static <T extends Executable, U extends XposedInterface.Hooker<T>> XposedInterface.MethodUnhooker<U, T>
-    doHook(@NonNull T hookMethod, int priority, U hooker) {
-        if (Modifier.isAbstract(hookMethod.getModifiers())) {
-            throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
-        } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
-            throw new IllegalArgumentException("Do not allow hooking inner methods");
-        } else if (hookMethod.getDeclaringClass() == Method.class && hookMethod.getName().equals("invoke")) {
-            throw new IllegalArgumentException("Cannot hook Method.invoke");
-        } else if (hooker == null) {
-            throw new IllegalArgumentException("hooker should not be null!");
-        }
-        var callback = getHookerCallback(hooker);
-        if (HookBridge.hookMethod(true, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
-            return new XposedInterface.MethodUnhooker<>() {
-                @NonNull
-                @Override
-                public T getOrigin() {
-                    return hookMethod;
-                }
-
-                @NonNull
-                @Override
-                public U getHooker() {
-                    return hooker;
-                }
-
-                @Override
-                public void unhook() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
-                }
-            };
-        }
-        throw new HookFailedError("Cannot hook " + hookMethod);
+    public static XposedInterface.Unhooker hook(@NonNull Method method, int priority, XposedInterface.Injector injector) {
+        return doHook(method, priority, injector);
     }
-
-    private static <T extends Executable> @NonNull HookerCallback getHookerCallback(XposedInterface.Hooker<T> hooker) {
-        Method beforeInvocation, afterInvocation;
-
-        try {
-            beforeInvocation = hooker.getClass().getDeclaredMethod("before", XposedInterface.BeforeHookCallback.class);
-            afterInvocation = hooker.getClass().getDeclaredMethod("after", XposedInterface.AfterHookCallback.class);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
-        return new HookerCallback(beforeInvocation, afterInvocation, hooker);
+    @NonNull
+    public static XposedInterface.Unhooker hook(@NonNull Constructor<?> constructor, int priority, XposedInterface.Injector injector) {
+        return doHook(constructor, priority, injector);
     }
 
     @NonNull
-    public static <T extends Executable, U extends XposedInterface.BeforeHooker<T>> XposedInterface.MethodUnhooker<U, T>
-    doHookBefore(@NonNull T hookMethod, int priority, U hooker) {
+    private static XposedInterface.Unhooker
+    doHook(@NonNull Executable hookMethod, int priority, XposedInterface.Injector injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
             throw new IllegalArgumentException("Do not allow hooking inner methods");
         } else if (hookMethod.getDeclaringClass() == Method.class && hookMethod.getName().equals("invoke")) {
             throw new IllegalArgumentException("Cannot hook Method.invoke");
-        } else if (hooker == null) {
-            throw new IllegalArgumentException("hooker should not be null!");
+        } else if (injector == null) {
+            throw new IllegalArgumentException("injector should not be null!");
         }
-        var callback = getHookerCallback(new XposedInterface.Hooker<T>(){
-            @Override
-            public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
-            }
 
-            @Override
-            public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback) {
-                hooker.before(callback);
-            }
-        });
-
-        if (HookBridge.hookMethod(true, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
-            return new XposedInterface.MethodUnhooker<U, T>() {
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeHooker.class, priority, injector)) {
+            return new XposedInterface.Unhooker() {
                 @NonNull
                 @Override
-                public T getOrigin() {
+                public Executable getOrigin() {
                     return hookMethod;
                 }
 
                 @NonNull
                 @Override
-                public U getHooker() {
-                    return hooker;
+                public XposedInterface.Injector getInjector() {
+                    return injector;
                 }
 
                 @Override
                 public void unhook() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
+                    HookBridge.unhookMethod(false, hookMethod, injector);
                 }
             };
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
-
-    @NonNull
-    public static <T extends Executable, U extends XposedInterface.AfterHooker<T>> XposedInterface.MethodUnhooker<U, T>
-    doHookAfter(@NonNull T hookMethod, int priority, U hooker) {
-        if (Modifier.isAbstract(hookMethod.getModifiers())) {
-            throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
-        } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
-            throw new IllegalArgumentException("Do not allow hooking inner methods");
-        } else if (hookMethod.getDeclaringClass() == Method.class && hookMethod.getName().equals("invoke")) {
-            throw new IllegalArgumentException("Cannot hook Method.invoke");
-        } else if (hooker == null) {
-            throw new IllegalArgumentException("hooker should not be null!");
-        }
-        var callback = getHookerCallback(new XposedInterface.Hooker<T>() {
-            @Override
-            public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
-                hooker.after(callback);
-            }
-            @Override
-            public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback) {
-            }
-        });
-
-        if (HookBridge.hookMethod(true, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
-            return new XposedInterface.MethodUnhooker<U, T>() {
-                @NonNull
-                @Override
-                public T getOrigin() {
-                    return hookMethod;
-                }
-
-                @NonNull
-                @Override
-                public U getHooker() {
-                    return hooker;
-                }
-
-                @Override
-                public void unhook() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
-                }
-            };
-        }
-        throw new HookFailedError("Cannot hook " + hookMethod);
-    }
-
 }

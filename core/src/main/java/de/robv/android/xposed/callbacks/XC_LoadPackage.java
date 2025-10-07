@@ -21,6 +21,7 @@
 package de.robv.android.xposed.callbacks;
 
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -87,6 +88,10 @@ public abstract class XC_LoadPackage extends XCallback implements IXposedHookLoa
          * More information about the application being loaded.
          */
         public ApplicationInfo appInfo;
+        /**
+         * More information about the package being loaded.
+         */
+        public PackageInfo packageInfo;
 
         /**
          * Set to {@code true} if this is the first (and main) application for this process.

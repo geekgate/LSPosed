@@ -35,19 +35,14 @@ import de.robv.android.xposed.XposedInit;
 import io.github.libxposed.api.XposedInterface;
 
 // when a package is loaded for an existing process, trigger the callbacks as well
-public class LoadedApkCtorHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class LoadedApkCtorHooker implements XposedInterface.PostInjector {
 
     @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
-
-    }
-
-    @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+    public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
         Hookers.logD("LoadedApk#<init> starts");
 
         try {
-            LoadedApk loadedApk = (LoadedApk) callback.getThis();
+            LoadedApk loadedApk = (LoadedApk) context.getThis();
             assert loadedApk != null;
             String packageName = loadedApk.getPackageName();
             Object mAppDir = XposedHelpers.getObjectField(loadedApk, "mAppDir");

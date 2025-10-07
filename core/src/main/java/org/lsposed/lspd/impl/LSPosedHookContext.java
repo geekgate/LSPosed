@@ -5,58 +5,41 @@ import androidx.annotation.Nullable;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
 import java.util.ConcurrentModificationException;
 
 import io.github.libxposed.api.XposedInterface;
 
-public class LSPosedHookCallback<T extends Executable> implements XposedInterface.BeforeHookCallback<T>, XposedInterface.AfterHookCallback<T> {
+public class LSPosedHookContext implements XposedInterface.BeforeHookContext, XposedInterface.AfterHookContext {
 
-    public Member method;
-
+    public Executable origin;
     public Object thisObject;
-
     public Object[] args;
-
     public Object result;
-
     public Throwable throwable;
-
     public boolean isSkipped;
+    public volatile ClassLoader classLoader;
+    public final XposedInterface.Logger logger = new Logger();
 
-    public LSPosedHookCallback() {
-    }
+    public LSPosedHookContext() {}
 
     // Both before and after
 
-
     @NonNull
     @Override
-    public T getOrigin() {
-        return null;
+    public Executable getOrigin() {
+        return origin;
     }
 
     @Nullable
     @Override
     public Object getThis() {
-        return null;
+        return thisObject;
     }
 
     @NonNull
     @Override
     public Object[] getArgs() {
         return this.args;
-    }
-
-    @Nullable
-    @Override
-    public <U> U getArg(int index) {
-        return null;
-    }
-
-    @Override
-    public <U> void setArg(int index, U value) {
-
     }
 
     // Before
@@ -79,6 +62,16 @@ public class LSPosedHookCallback<T extends Executable> implements XposedInterfac
     @Override
     public Object invokeOrigin() throws InvocationTargetException, IllegalAccessException {
         return null;
+    }
+
+    @Override
+    public Class<?> loadClass(@NonNull String className) throws ClassNotFoundException {
+        return classLoader.loadClass(className);
+    }
+
+    @Override
+    public XposedInterface.Logger getLogger() {
+        return logger;
     }
 
     @Override

@@ -27,18 +27,15 @@ import androidx.annotation.NonNull;
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
 
-import java.lang.reflect.Executable;
-
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.XposedModuleInterface;
 
-public class StartBootstrapServicesHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class StartBootstrapServicesHooker implements XposedInterface.PreInjector {
 
     @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
+    public void inject(@NonNull XposedInterface.BeforeHookContext context, Object[] args){
         logD("SystemServer#startBootstrapServices() starts");
 
         try {
@@ -57,8 +54,4 @@ public class StartBootstrapServicesHooker<T extends Executable> implements Xpose
             Hookers.logE("error when hooking startBootstrapServices", t);
         }
     }
-    @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
-    }
-
 }

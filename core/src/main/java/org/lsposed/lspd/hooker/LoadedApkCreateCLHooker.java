@@ -25,7 +25,10 @@ import static org.lsposed.lspd.core.ApplicationServiceClient.serviceClient;
 import android.annotation.SuppressLint;
 import android.app.ActivityThread;
 import android.app.LoadedApk;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -37,7 +40,6 @@ import org.lsposed.lspd.util.Utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Optional;
@@ -54,7 +56,7 @@ import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModuleInterface;
 
 @SuppressLint("BlockedPrivateApi")
-public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
     private final static Field defaultClassLoaderField;
 
     private final static Set<LoadedApk> loadedApks = ConcurrentHashMap.newKeySet();
@@ -76,15 +78,11 @@ public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInte
     }
 
     @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
+    public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
 
-    }
-    @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+        LoadedApk loadedApk = (LoadedApk) context.getThis();
 
-        LoadedApk loadedApk = (LoadedApk) callback.getThis();
-
-        if (callback.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
+        if (context.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
         }
 
@@ -93,6 +91,7 @@ public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInte
 
             String packageName = ActivityThread.currentPackageName();
             String processName = ActivityThread.currentProcessName();
+
             boolean isFirstPackage = packageName != null && processName != null && packageName.equals(loadedApk.getPackageName());
             if (!isFirstPackage) {
                 packageName = loadedApk.getPackageName();
@@ -118,20 +117,28 @@ public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInte
                 return;
             }
 
-            XC_LoadPackage.LoadPackageParam lpparam = new XC_LoadPackage.LoadPackageParam(
-                    XposedBridge.sLoadedPackageCallbacks);
-            lpparam.packageName = packageName;
-            lpparam.processName = processName;
-            lpparam.classLoader = classLoader;
-            lpparam.appInfo = loadedApk.getApplicationInfo();
-            lpparam.isFirstApplication = isFirstPackage;
+            var at = ActivityThread.currentActivityThread();
+            var pm = at.getSystemContext().getPackageManager();
+
+            XC_LoadPackage.LoadPackageParam param = new XC_LoadPackage.LoadPackageParam(XposedBridge.sLoadedPackageCallbacks);
+            param.packageName = packageName;
+            param.processName = processName;
+            param.classLoader = classLoader;
+            param.appInfo = loadedApk.getApplicationInfo();
+            param.packageInfo = pm.getPackageInfo(loadedApk.getPackageName(), PackageManager.GET_META_DATA);
+            param.isFirstApplication = isFirstPackage;
 
             if (isFirstPackage && XposedInit.getLoadedModules().getOrDefault(packageName, Optional.empty()).isPresent()) {
-                hookNewXSP(lpparam);
+                hookNewXSP(param);
             }
 
-            Hookers.logD("Call handleLoadedPackage: packageName=" + lpparam.packageName + " processName=" + lpparam.processName + " isFirstPackage=" + isFirstPackage + " classLoader=" + lpparam.classLoader + " appInfo=" + lpparam.appInfo);
-            XC_LoadPackage.callAll(lpparam);
+            Hookers.logD("Call handleLoadedPackage: packageName=" + param.packageName
+                    + " packageVersion=" + param.packageInfo.versionCode
+                    + " processName=" + param.processName
+                    + " isFirstPackage=" + isFirstPackage
+                    + " classLoader=" + param.classLoader
+                    + " appInfo=" + param.appInfo);
+            XC_LoadPackage.callAll(param);
 
             LSPosedContext.callOnPackageLoaded(new XposedModuleInterface.PackageLoadedParam() {
                 @NonNull
@@ -142,8 +149,24 @@ public class LoadedApkCreateCLHooker<T extends Executable> implements XposedInte
 
                 @NonNull
                 @Override
+                public String getPackageVersion() {
+                    return param.packageInfo.versionName;
+                }
+
+                @NonNull
+                @Override
                 public ApplicationInfo getAppInfo() {
                     return loadedApk.getApplicationInfo();
+                }
+
+                @Override
+                public PackageInfo getPackageInfo() {
+                    return param.packageInfo;
+                }
+
+                @Override
+                public Context getSystemContext() {
+                    return at.getSystemContext();
                 }
 
                 @NonNull

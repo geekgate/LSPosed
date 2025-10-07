@@ -8,5 +8,6 @@ parcelable Module {
     String apkPath;
     PreLoadedApk file;
     ApplicationInfo applicationInfo;
+    PackageInfo packageInfo;
     ILSPInjectedModuleService service;
 }

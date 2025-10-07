@@ -11,16 +11,12 @@ import java.lang.reflect.Executable;
 
 import io.github.libxposed.api.XposedInterface;
 
-public class OpenDexFileHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class OpenDexFileHooker implements XposedInterface.PostInjector {
 
     @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
-
-    }
-    @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+    public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
         ClassLoader classLoader = null;
-        for (var arg : callback.getArgs()) {
+        for (var arg : context.getArgs()) {
             if (arg instanceof ClassLoader) {
                 classLoader = (ClassLoader) arg;
             }
@@ -30,7 +26,7 @@ public class OpenDexFileHooker<T extends Executable> implements XposedInterface.
         }
         while (classLoader != null) {
             if (classLoader == LSPosedBridge.class.getClassLoader()) {
-                HookBridge.setTrusted(callback.getResult());
+                HookBridge.setTrusted(context.getResult());
                 return;
             } else {
                 classLoader = classLoader.getParent();

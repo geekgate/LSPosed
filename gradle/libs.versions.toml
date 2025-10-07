@@ -3,14 +3,14 @@ agp = "8.1.2"
 kotlin = "1.9.10"
 nav = "2.7.4"
 appcenter = "5.0.2"
-libxposed = "100"
+api = "101"
+interface = "100"
 glide = "4.16.0"
 okhttp = "4.11.0"
 
 [plugins]
 agp-lib = { id = "com.android.library", version.ref = "agp" }
 agp-app = { id = "com.android.application", version.ref = "agp" }
-kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nav-safeargs = { id = "androidx.navigation.safeargs", version.ref = "nav" }
 autoresconfig = { id = "dev.rikka.tools.autoresconfig", version = "1.2.2" }
 materialthemebuilder = { id = "dev.rikka.tools.materialthemebuilder", version = "1.3.3" }
@@ -64,5 +64,5 @@ hiddenapibypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", vers
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.7.3" }
 
-libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed" }
-libxposed-interfaces = { group = "io.github.libxposed", name = "interface", version.ref = "libxposed" }
+libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "api" }
+libxposed-interfaces = { group = "io.github.libxposed", name = "interface", version.ref = "interface" }

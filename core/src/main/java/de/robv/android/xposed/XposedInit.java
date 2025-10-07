@@ -280,14 +280,14 @@ public final class XposedInit {
                     count++;
                 }
 
-                if (moduleInstance instanceof IXposedHookLoadPackage) {
-                    XposedBridge.hookLoadPackage(new IXposedHookLoadPackage.Wrapper((IXposedHookLoadPackage) moduleInstance));
-                    count++;
-                }
-
                 if (moduleInstance instanceof IXposedHookInitPackageResources) {
                     hookResources();
                     XposedBridge.hookInitPackageResources(new IXposedHookInitPackageResources.Wrapper((IXposedHookInitPackageResources) moduleInstance));
+                    count++;
+                }
+
+                if (moduleInstance instanceof IXposedHookLoadPackage) {
+                    XposedBridge.hookLoadPackage(new IXposedHookLoadPackage.Wrapper((IXposedHookLoadPackage) moduleInstance));
                     count++;
                 }
             } catch (Throwable t) {

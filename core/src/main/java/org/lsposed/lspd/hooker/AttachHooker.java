@@ -8,13 +8,9 @@ import java.lang.reflect.Executable;
 
 import de.robv.android.xposed.XposedInit;
 import io.github.libxposed.api.XposedInterface;
-public class AttachHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class AttachHooker implements XposedInterface.PostInjector {
     @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
-
-    }
-    @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
-        XposedInit.loadModules((ActivityThread) callback.getThis());
+    public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
+        XposedInit.loadModules((ActivityThread) context.getThis());
     }
 }

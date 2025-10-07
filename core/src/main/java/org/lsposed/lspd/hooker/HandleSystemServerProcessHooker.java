@@ -30,17 +30,13 @@ import org.lsposed.lspd.util.Hookers;
 import io.github.libxposed.api.XposedInterface;
 
 // system_server initialization
-public class HandleSystemServerProcessHooker<T extends Executable> implements XposedInterface.Hooker<T> {
+public class HandleSystemServerProcessHooker implements XposedInterface.PostInjector {
 
     public static volatile ClassLoader systemServerCL;
 
-    @Override
-    public void before(@NonNull XposedInterface.BeforeHookCallback<T> callback){
-
-    }
     @SuppressLint("PrivateApi")
     @Override
-    public void after(@NonNull XposedInterface.AfterHookCallback<T> callback) {
+    public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
         try {
             // get system_server classLoader
@@ -48,7 +44,7 @@ public class HandleSystemServerProcessHooker<T extends Executable> implements Xp
             // deopt methods in SYSTEMSERVERCLASSPATH
             PrebuiltMethodsDeopter.deoptSystemServerMethods(systemServerCL);
             var clazz = Class.forName("com.android.server.SystemServer", false, systemServerCL);
-            LSPosedHelper.hookAllMethods(new StartBootstrapServicesHooker<>(), clazz, "startBootstrapServices");
+            LSPosedHelper.hookAllMethods(new StartBootstrapServicesHooker(), clazz, "startBootstrapServices");
         } catch (Throwable t) {
             Hookers.logE("error when hooking systemMain", t);
         }
