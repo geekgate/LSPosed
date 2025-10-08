@@ -32,6 +32,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
@@ -117,15 +118,11 @@ public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
                 return;
             }
 
-            var at = ActivityThread.currentActivityThread();
-            var pm = at.getSystemContext().getPackageManager();
-
             XC_LoadPackage.LoadPackageParam param = new XC_LoadPackage.LoadPackageParam(XposedBridge.sLoadedPackageCallbacks);
             param.packageName = packageName;
             param.processName = processName;
             param.classLoader = classLoader;
             param.appInfo = loadedApk.getApplicationInfo();
-            param.packageInfo = pm.getPackageInfo(loadedApk.getPackageName(), PackageManager.GET_META_DATA);
             param.isFirstApplication = isFirstPackage;
 
             if (isFirstPackage && XposedInit.getLoadedModules().getOrDefault(packageName, Optional.empty()).isPresent()) {
@@ -133,7 +130,6 @@ public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
             }
 
             Hookers.logD("Call handleLoadedPackage: packageName=" + param.packageName
-                    + " packageVersion=" + param.packageInfo.versionCode
                     + " processName=" + param.processName
                     + " isFirstPackage=" + isFirstPackage
                     + " classLoader=" + param.classLoader
@@ -150,7 +146,8 @@ public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
                 @NonNull
                 @Override
                 public String getPackageVersion() {
-                    return param.packageInfo.versionName;
+                    var pi = getPackageInfo();
+                    return pi != null ? pi.versionName : "";
                 }
 
                 @NonNull
@@ -159,14 +156,21 @@ public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
                     return loadedApk.getApplicationInfo();
                 }
 
+                @Nullable
                 @Override
                 public PackageInfo getPackageInfo() {
-                    return param.packageInfo;
+                    var at = ActivityThread.currentActivityThread();
+                    var pm = at.getSystemContext().getPackageManager();
+                    try {
+                        return pm.getPackageInfo(getPackageName(), PackageManager.GET_META_DATA);
+                    } catch (PackageManager.NameNotFoundException e) {
+                        return null;
+                    }
                 }
 
                 @Override
                 public Context getSystemContext() {
-                    return at.getSystemContext();
+                    return ActivityThread.currentActivityThread().getSystemContext();
                 }
 
                 @NonNull

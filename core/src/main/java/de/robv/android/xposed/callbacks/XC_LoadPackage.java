@@ -20,8 +20,13 @@
 
 package de.robv.android.xposed.callbacks;
 
+import android.app.ActivityThread;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+
+import androidx.annotation.Nullable;
+
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -84,7 +89,19 @@ public abstract class XC_LoadPackage extends XCallback implements IXposedHookLoa
         /**
          * More information about the package being loaded.
          */
-        public PackageInfo packageInfo;
+        @Nullable
+        public PackageInfo getPackageInfo() {
+            if (packageName == null || packageName.isEmpty()) {
+                return null;
+            }
+            var at = ActivityThread.currentActivityThread();
+            var pm = at.getSystemContext().getPackageManager();
+            try {
+                return pm.getPackageInfo(packageName, PackageManager.GET_META_DATA);
+            } catch (PackageManager.NameNotFoundException e) {
+                return null;
+            }
+        }
 
         /**
          * Set to {@code true} if this is the first (and main) application for this process.
