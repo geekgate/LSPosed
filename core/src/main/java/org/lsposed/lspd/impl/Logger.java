@@ -7,54 +7,63 @@ import io.github.libxposed.api.XposedInterface;
 
 public class Logger implements XposedInterface.Logger {
 
-    private void write(String tag, @NonNull Object[] msg) {
+    private final String tag;
+
+    public Logger() {
+        this("");
+    }
+
+    public Logger(String tag) {
+        this.tag = tag;
+    }
+
+    @NonNull
+    private String join(Object... msg) {
+        if (msg == null || msg.length == 0) return "";
         StringBuilder sb = new StringBuilder();
-        sb.append(" ");
-        for (Object arg : msg) {
-            sb.append(arg);
+        try {
+            for (Object arg : msg) {
+                sb.append(arg);
+            }
+        } catch (Exception e) {
+            sb.append("[Exception] Logger exception: ");
+            sb.append(e);
         }
-        Log.i(tag, sb.toString());
+        return sb.toString();
     }
 
     @Override
     public void i(Object... args) {
-        write("[I]", args);
+        Log.i(tag, join(args));
     }
 
     @Override
     public void w(Object... args) {
-        write("[W]", args);
+        Log.w(tag, join(args));
     }
 
     @Override
     public void e(Object... args) {
-        write("[E]", args);
+        Log.e(tag, join(args));
     }
 
     @Override
     public void e(String message, @NonNull Throwable t) {
-        write("[E]", new Object[] {message, t.getMessage()});
+        Log.e(tag, join(message, t.getMessage()));
     }
 
     @Override
     public void d(Object... args) {
-        write("[D]", args);
+        Log.d(tag, join(args));
     }
 
     @Override
     public void v(Object... args) {
-        write("[V]", args);
+        Log.v(tag, join(args));
     }
 
     @Override
     public void z(Object... args) {
-        if (args == null || args.length == 0) {
-            return;
-        }
-        StringBuilder sb = new StringBuilder();
-        for (Object arg : args) {
-            sb.append(arg);
-        }
-        Log.i("", sb.toString());
+        Log.i("", join( args ));
     }
 }

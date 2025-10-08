@@ -340,7 +340,7 @@ namespace lspd {
     };
 
     SharedMem InitCompanion() {
-        LOGI("ZygiskCompanion: welcome to LSPosed!");
+        LOGI("ZygiskCompanion: welcome to LSPosed Pro!");
         LOGI("ZygiskCompanion: version v{} ({})", versionName, versionCode);
 
         SharedMem symbol{"symbol", sizeof(lspd::SymbolCache)};
