@@ -81,8 +81,8 @@ public class LoadedApkCreateCLHooker implements XposedInterface.PostInjector {
     public void inject(@NonNull XposedInterface.AfterHookContext context, Object returnValue, Throwable throwable) {
 
         LoadedApk loadedApk = (LoadedApk) context.getThis();
-
-        if (context.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
+        var args = context.getArgs();
+        if ((args.length>0 && args[0] != null) || !loadedApks.contains(loadedApk)) {
             return;
         }
 

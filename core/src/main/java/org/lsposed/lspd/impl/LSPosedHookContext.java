@@ -17,8 +17,6 @@ public class LSPosedHookContext implements XposedInterface.BeforeHookContext, Xp
     public Object result;
     public Throwable throwable;
     public boolean isSkipped;
-    public volatile ClassLoader classLoader;
-    public final XposedInterface.Logger logger = new Logger();
 
     public LSPosedHookContext() {}
 
@@ -62,16 +60,6 @@ public class LSPosedHookContext implements XposedInterface.BeforeHookContext, Xp
     @Override
     public Object invokeOrigin() throws InvocationTargetException, IllegalAccessException {
         return null;
-    }
-
-    @Override
-    public Class<?> loadClass(@NonNull String className) throws ClassNotFoundException {
-        return classLoader.loadClass(className);
-    }
-
-    @Override
-    public XposedInterface.Logger getLogger() {
-        return logger;
     }
 
     @Override

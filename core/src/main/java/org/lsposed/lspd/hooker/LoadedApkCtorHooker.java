@@ -34,7 +34,9 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
 import io.github.libxposed.api.XposedInterface;
 
-// when a package is loaded for an existing process, trigger the callbacks as well
+/**
+ * when a package is loaded for an existing process, trigger the callbacks as well
+ */
 public class LoadedApkCtorHooker implements XposedInterface.PostInjector {
 
     @Override

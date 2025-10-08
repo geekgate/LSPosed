@@ -41,13 +41,13 @@ public class StartBootstrapServicesHooker implements XposedInterface.PreInjector
         try {
             XposedInit.loadedPackagesInProcess.add("android");
 
-            XC_LoadPackage.LoadPackageParam lpparam = new XC_LoadPackage.LoadPackageParam(XposedBridge.sLoadedPackageCallbacks);
-            lpparam.packageName = "android";
-            lpparam.processName = "android"; // it's actually system_server, but other functions return this as well
-            lpparam.classLoader = HandleSystemServerProcessHooker.systemServerCL;
-            lpparam.appInfo = null;
-            lpparam.isFirstApplication = true;
-            XC_LoadPackage.callAll(lpparam);
+            XC_LoadPackage.LoadPackageParam param = new XC_LoadPackage.LoadPackageParam(XposedBridge.sLoadedPackageCallbacks);
+            param.packageName = "android";
+            param.processName = "android"; // it's actually system_server, but other functions return this as well
+            param.classLoader = HandleSystemServerProcessHooker.systemServerCL;
+            param.appInfo = null;
+            param.isFirstApplication = true;
+            XC_LoadPackage.callAll(param);
 
             LSPosedContext.callOnSystemServerLoaded(() -> HandleSystemServerProcessHooker.systemServerCL);
         } catch (Throwable t) {

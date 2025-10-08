@@ -1,10 +1,10 @@
 package org.lsposed.lspd.impl;
 
+import android.app.ActivityThread;
+import android.content.pm.PackageManager;
 import android.util.Log;
-import android.util.Pair;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import org.lsposed.lspd.nativebridge.HookBridge;
 
@@ -72,30 +72,10 @@ public class LSPosedBridge {
         Log.e(TAG, logStr);
     }
 
-    @Nullable
-    public static Pair<Method, Method> getInjectorMethod(@NonNull XposedInterface.Injector injector) {
-        Method pre = null, post = null;
-        for (Method m : injector.getClass().getDeclaredMethods()) {
-            Class<?>[] ps = m.getParameterTypes();
-            if (ps.length == 2 && ps[0] == XposedInterface.BeforeHookContext.class && ps[1] == objArrayClass) {
-                pre = m;
-                continue;
-            }
-            if (ps.length == 3 && ps[0] == XposedInterface.AfterHookContext.class && ps[1] == Object.class && ps[2] == Throwable.class) {
-                post = m;
-            }
-        }
-        if (pre == null && post == null) {
-            return null;
-        }
-        return new Pair<>(pre, post);
-    }
-
     public static class NativeHooker<T extends Executable> {
         private final Object params;
-        private final ClassLoader classLoader;
 
-        private NativeHooker(Executable method, ClassLoader classLoader) {
+        private NativeHooker(Executable method) {
             var isStatic = Modifier.isStatic(method.getModifiers());
             Object returnType;
             if (method instanceof Method) {
@@ -108,7 +88,6 @@ public class LSPosedBridge {
                     returnType,
                     isStatic,
             };
-            this.classLoader = classLoader;
         }
 
         // This method is quite critical. We should try not to use system methods to avoid
@@ -124,7 +103,6 @@ public class LSPosedBridge {
             var isStatic = (Boolean) array[2];
 
             context.origin = method;
-            context.classLoader = classLoader;
 
             if (isStatic) {
                 context.thisObject = null;
