@@ -389,92 +389,79 @@ public final class XposedBridge {
     }
 
     public static class LegacyApiSupport<T extends Executable> {
-        private final LSPosedHookContext context;
+        private final XC_MethodHook.MethodHookParam<T> param;
+        private final LSPosedHookContext callback;
         private final Object[] snapshot;
 
         private int beforeIdx;
 
-        public LegacyApiSupport(LSPosedHookContext context, Object[] legacySnapshot) {
-            this.context = context;
+        public LegacyApiSupport(LSPosedHookContext callback, Object[] legacySnapshot) {
+            this.param = new XC_MethodHook.MethodHookParam<>();
+            this.callback = callback;
             this.snapshot = legacySnapshot;
         }
 
-        @NonNull
-        private XC_MethodHook.MethodHookParam<T> getParam() {
-            XC_MethodHook.MethodHookParam<T> param = new XC_MethodHook.MethodHookParam<>();
-            param.method = context.origin;
-            param.thisObject = context.thisObject;
-            param.args = context.args;
-            param.result = context.result;
-            param.throwable = context.throwable;
-            param.returnEarly = context.isSkipped;
-            return param;
-        }
-
-        private void refresh(@NonNull XC_MethodHook.MethodHookParam<T> param) {
-            context.origin = (Executable) param.method;
-            context.thisObject = param.thisObject;
-            context.args = param.args;
-            context.result = param.result;
-            context.throwable = param.throwable;
-            context.isSkipped = param.returnEarly;
-        }
-
         public void handleBefore() {
+            synchronizedApi(param, callback, true);
             for (beforeIdx = 0; beforeIdx < snapshot.length; beforeIdx++) {
                 try {
-                    var cb = snapshot[beforeIdx];
-                    if (cb instanceof XC_MethodHook x) {
-                        var param = getParam();
-                        x.beforeHookedMethod(param);
-                        refresh(param);
-                    } else if (cb instanceof XposedInterface.Hook x) {
-                        x.inject(context, context.args);
-                    } else if (cb instanceof XposedInterface.PreInjector x) {
-                        x.inject(context, context.args);
-                    }
+                    var cb = (XC_MethodHook) snapshot[beforeIdx];
+                    cb.beforeHookedMethod(param);
                 } catch (Throwable t) {
                     XposedBridge.log(t);
 
                     // reset result (ignoring what the unexpectedly exiting callback did)
-                    context.setResult(null);
-                    context.isSkipped = false;
+                    param.setResult(null);
+                    param.returnEarly = false;
                     continue;
                 }
 
-                if (context.isSkipped) {
+                if (param.returnEarly) {
                     // skip remaining "before" callbacks and corresponding "after" callbacks
                     beforeIdx++;
                     break;
                 }
             }
+            synchronizedApi(param, callback, false);
         }
 
         public void handleAfter() {
+            synchronizedApi(param, callback, true);
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
-                Object lastResult = context.getResult();
-                Throwable lastThrowable = context.getThrowable();
+                Object lastResult = param.getResult();
+                Throwable lastThrowable = param.getThrowable();
                 try {
-                    var cb = snapshot[afterIdx];
-                    if (cb instanceof XC_MethodHook x) {
-                        var param = getParam();
-                        x.afterHookedMethod(param);
-                        refresh(param);
-                    } else if (cb instanceof XposedInterface.Hook x) {
-                        x.inject(context, lastResult, lastThrowable);
-                    } else if (cb instanceof XposedInterface.PostInjector x) {
-                        x.inject(context, lastResult, lastThrowable);
-                    }
+                    var cb = (XC_MethodHook) snapshot[afterIdx];
+                    cb.afterHookedMethod(param);
                 } catch (Throwable t) {
                     XposedBridge.log(t);
 
                     // reset to last result (ignoring what the unexpectedly exiting callback did)
                     if (lastThrowable == null) {
-                        context.setResult(lastResult);
+                        param.setResult(lastResult);
                     } else {
-                        context.setThrowable(lastThrowable);
+                        param.setThrowable(lastThrowable);
                     }
                 }
+            }
+            synchronizedApi(param, callback, false);
+        }
+
+        private void synchronizedApi(XC_MethodHook.MethodHookParam<T> param, LSPosedHookContext callback, boolean forward) {
+            if (forward) {
+                param.method = callback.origin;
+                param.thisObject = callback.thisObject;
+                param.args = callback.args;
+                param.result = callback.result;
+                param.throwable = callback.throwable;
+                param.returnEarly = callback.isSkipped;
+            } else {
+                callback.origin = (Executable) param.method;
+                callback.thisObject = param.thisObject;
+                callback.args = param.args;
+                callback.result = param.result;
+                callback.throwable = param.throwable;
+                callback.isSkipped = param.returnEarly;
             }
         }
     }

@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
+import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.errors.HookFailedError;
@@ -226,6 +227,50 @@ public class LSPosedBridge {
         return doHook(constructor, priority, injector);
     }
 
+    private static class Callback extends XC_MethodHook {
+        private final XposedInterface.Injector injector;
+
+        private LSPosedHookContext ctx;
+
+        public Callback(XposedInterface.Injector injector, int priority) {
+            super(priority);
+            this.injector = injector;
+        }
+
+        private LSPosedHookContext getContext(MethodHookParam<?> param) {
+            if (ctx == null) {
+                ctx = new LSPosedHookContext();
+            }
+            ctx.origin = (Executable) param.method;
+            ctx.thisObject = param.thisObject;
+            ctx.args = param.args;
+            ctx.result = param.result;
+            ctx.throwable = param.throwable;
+            ctx.isSkipped = param.returnEarly;
+            return ctx;
+        }
+
+        @Override
+        protected void beforeHookedMethod(MethodHookParam<?> param) throws Throwable {
+            var context = getContext(param);
+            if (injector instanceof XposedInterface.Hook x) {
+                x.inject(context, context.args);
+            } else if (injector instanceof XposedInterface.PreInjector x) {
+                x.inject(context, context.args);
+            }
+        }
+
+        @Override
+        protected void afterHookedMethod(MethodHookParam<?> param) throws Throwable {
+            var context = getContext(param);
+            if (injector instanceof XposedInterface.Hook x) {
+                x.inject(context, param.getResult(), param.getThrowable());
+            } else if (injector instanceof XposedInterface.PostInjector x) {
+                x.inject(context, param.getResult(), param.getThrowable());
+            }
+        }
+    }
+
     @NonNull
     private static XposedInterface.Unhooker
     doHook(@NonNull Executable hookMethod, int priority, XposedInterface.Injector injector) {
@@ -239,7 +284,9 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeHooker.class, priority, injector)) {
+        var callback = new Callback(injector, priority);
+
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
             return new XposedInterface.Unhooker() {
                 @NonNull
                 @Override
@@ -255,7 +302,7 @@ public class LSPosedBridge {
 
                 @Override
                 public void unhook() {
-                    HookBridge.unhookMethod(false, hookMethod, injector);
+                    HookBridge.unhookMethod(false, hookMethod, callback);
                 }
             };
         }
