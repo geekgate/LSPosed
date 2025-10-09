@@ -11,11 +11,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
+import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.annotations.AfterInvocation;
-import io.github.libxposed.api.annotations.BeforeInvocation;
-import io.github.libxposed.api.annotations.XposedHooker;
 import io.github.libxposed.api.errors.HookFailedError;
 
 public class LSPosedBridge {
@@ -209,8 +208,22 @@ public class LSPosedBridge {
     public static void dummyCallback() {
     }
 
+    private static boolean isBeforeInvocation(Method method) {
+        var ps = method.getParameterTypes();
+        return ps.length == 1
+                && ps[0].equals(XposedInterface.BeforeHookCallback.class);
+    }
+
+    private static boolean isAfterInvocation(Method method) {
+        var ps = method.getParameterTypes();
+        return ps.length >= 1
+                && ps[0].equals(XposedInterface.AfterHookCallback.class)
+                && method.getReturnType().equals(void.class);
+    }
+
+    @NonNull
     public static <T extends Executable> XposedInterface.MethodUnhooker<T>
-    doHook(T hookMethod, int priority, Class<? extends XposedInterface.Hooker> hooker) {
+    hook(T hookMethod, int priority, Class<? extends XposedInterface.Hooker> hooker) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -219,43 +232,23 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("Cannot hook Method.invoke");
         } else if (hooker == null) {
             throw new IllegalArgumentException("hooker should not be null!");
-        } else if (hooker.getAnnotation(XposedHooker.class) == null) {
-            throw new IllegalArgumentException("Hooker should be annotated with @XposedHooker");
         }
 
         Method beforeInvocation = null, afterInvocation = null;
         var modifiers = Modifier.PUBLIC | Modifier.STATIC;
         for (var method : hooker.getDeclaredMethods()) {
-            if (method.getAnnotation(BeforeInvocation.class) != null) {
+            if ((method.getModifiers() & modifiers) != modifiers) {
+                continue;
+            }
+            if (isBeforeInvocation(method)) {
                 if (beforeInvocation != null) {
                     throw new IllegalArgumentException("More than one method annotated with @BeforeInvocation");
                 }
-                boolean valid = (method.getModifiers() & modifiers) == modifiers;
-                var params = method.getParameterTypes();
-                if (params.length == 1) {
-                    valid &= params[0].equals(XposedInterface.BeforeHookCallback.class);
-                } else if (params.length != 0) {
-                    valid = false;
-                }
-                if (!valid) {
-                    throw new IllegalArgumentException("BeforeInvocation method format is invalid");
-                }
                 beforeInvocation = method;
             }
-            if (method.getAnnotation(AfterInvocation.class) != null) {
+            if (isAfterInvocation( method )) {
                 if (afterInvocation != null) {
                     throw new IllegalArgumentException("More than one method annotated with @AfterInvocation");
-                }
-                boolean valid = (method.getModifiers() & modifiers) == modifiers;
-                valid &= method.getReturnType().equals(void.class);
-                var params = method.getParameterTypes();
-                if (params.length == 1 || params.length == 2) {
-                    valid &= params[0].equals(XposedInterface.AfterHookCallback.class);
-                } else if (params.length != 0) {
-                    valid = false;
-                }
-                if (!valid) {
-                    throw new IllegalArgumentException("AfterInvocation method format is invalid");
                 }
                 afterInvocation = method;
             }
@@ -296,4 +289,100 @@ public class LSPosedBridge {
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
+
+    private static class Callback<T extends Executable> extends XC_MethodHook {
+
+        private final Injector injector;
+        private final LSPosedHookCallback<T> callback = new LSPosedHookCallback<>();
+
+        Callback(Injector injector, int priority) {
+            super(priority);
+            this.injector = injector;
+        }
+
+        private void refresh(XC_MethodHook.MethodHookParam<?> param) {
+            callback.method     = param.method;
+            callback.thisObject = param.thisObject;
+            callback.args       = param.args;
+            callback.result     = param.result;
+            callback.throwable  = param.throwable;
+            callback.isSkipped  = param.returnEarly;
+        }
+
+        private void restore(MethodHookParam<?> param) {
+            param.args = callback.args;
+            param.result = callback.result;
+            param.throwable = callback.throwable;
+            param.returnEarly = callback.isSkipped;
+        }
+
+        @Override
+        protected void beforeHookedMethod(MethodHookParam<?> param) throws Throwable {
+            refresh(param);
+            if (injector instanceof Injector.Hook x) {
+                x.inject(callback, callback.args);
+                restore(param);
+            } else if (injector instanceof Injector.PreInjector x) {
+                x.inject(callback, callback.args);
+                restore(param);
+            }
+        }
+
+        @Override
+        protected void afterHookedMethod(MethodHookParam<?> param) throws Throwable {
+            refresh(param);
+            if (injector instanceof Injector.Hook x) {
+                x.inject(callback, callback.result, callback.throwable);
+                restore(param);
+            } else if (injector instanceof Injector.PostInjector x) {
+                x.inject(callback, callback.result, callback.throwable);
+                restore(param);
+            }
+        }
+    }
+
+    public static <T extends Executable> XposedInterface.MethodUnhooker<T>
+    hook(T hookMethod, int priority, Injector.PreInjector injector) {
+        return inject(hookMethod, priority, injector);
+    }
+    public static <T extends Executable> XposedInterface.MethodUnhooker<T>
+    hook(T hookMethod, int priority, Injector.PostInjector injector) {
+        return inject(hookMethod, priority, injector);
+    }
+    public static <T extends Executable> XposedInterface.MethodUnhooker<T>
+    hook(T hookMethod, int priority, Injector.Hook injector) {
+        return inject(hookMethod, priority, injector);
+    }
+
+    private static <T extends Executable> XposedInterface.MethodUnhooker<T>
+    inject(T hookMethod, int priority, Injector injector) {
+        if (Modifier.isAbstract(hookMethod.getModifiers())) {
+            throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
+        } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
+            throw new IllegalArgumentException("Do not allow hooking inner methods");
+        } else if (hookMethod.getDeclaringClass() == Method.class && hookMethod.getName().equals("invoke")) {
+            throw new IllegalArgumentException("Cannot hook Method.invoke");
+        } else if (injector == null) {
+            throw new IllegalArgumentException("injector should not be null!");
+        }
+
+        var callback = new Callback<T>(injector, priority);
+
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
+            return new XposedInterface.MethodUnhooker<>() {
+                @NonNull
+                @Override
+                public T getOrigin() {
+                    return hookMethod;
+                }
+
+                @Override
+                public void unhook() {
+                    HookBridge.unhookMethod(true, hookMethod, callback);
+                }
+            };
+        }
+        throw new HookFailedError("Cannot hook " + hookMethod);
+    }
+
 }
