@@ -26,7 +26,7 @@ plugins {
     alias(libs.plugins.lsplugin.resopt)
 }
 
-val daemonName = "LSPosed"
+val daemonName = "LSPosed Pro"
 
 val injectedPackageName: String by rootProject.extra
 val injectedPackageUid: Int by rootProject.extra
@@ -114,7 +114,7 @@ android.applicationVariants.all {
 }
 
 dependencies {
-    implementation(libs.libxposed.`interface`)
+    implementation(libs.libxposed.interfaces)
     implementation(libs.agp.apksig)
     implementation(libs.commons.lang3)
     implementation(projects.hiddenapi.bridge)

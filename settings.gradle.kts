@@ -24,7 +24,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LSPosed"
+rootProject.name = "LSPosedPro"
 include(
     ":app",
     ":core",

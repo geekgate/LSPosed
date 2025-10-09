@@ -15,7 +15,7 @@ public class LSPosedHelper {
     hookMethod(Class<? extends XposedInterface.Hooker> hooker, Class<T> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.doHook(method, XposedInterface.PRIORITY_DEFAULT, hooker);
+            return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, hooker);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -27,7 +27,7 @@ public class LSPosedHelper {
         var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.doHook(method, XposedInterface.PRIORITY_DEFAULT, hooker));
+                unhooks.add(LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, hooker));
             }
         }
         return unhooks;
@@ -38,7 +38,7 @@ public class LSPosedHelper {
     hookConstructor(Class<? extends XposedInterface.Hooker> hooker, Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.doHook(constructor, XposedInterface.PRIORITY_DEFAULT, hooker);
+            return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, hooker);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }

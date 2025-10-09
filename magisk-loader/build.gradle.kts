@@ -28,7 +28,7 @@ plugins {
     alias(libs.plugins.lsplugin.resopt)
 }
 
-val moduleName = "LSPosed"
+val moduleName = "LSPosed Pro"
 val moduleBaseId = "lsposed"
 val authors = "LSPosed Developers"
 
