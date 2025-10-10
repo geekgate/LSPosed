@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.ActivityThread;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -13,6 +14,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.lsposed.lspd.util.ConfigManager;
 import org.lsposed.lspd.core.BuildConfig;
 import org.lsposed.lspd.impl.utils.LSPosedDexParser;
 import org.lsposed.lspd.models.Module;
@@ -31,6 +33,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -423,5 +426,11 @@ public class LSPosedContext implements XposedInterface {
         } catch (RemoteException e) {
             throw new FileNotFoundException(e.getMessage());
         }
+    }
+
+    @NonNull
+    @Override
+    public List<PackageInfo> getInstalledPackages(boolean force) throws RemoteException {
+        return ConfigManager.getAppList(force);
     }
 }
