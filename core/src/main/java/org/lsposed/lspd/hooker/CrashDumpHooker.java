@@ -2,11 +2,13 @@ package org.lsposed.lspd.hooker;
 
 import android.util.Log;
 
+import org.lsposed.lspd.Tag;
 import org.lsposed.lspd.impl.LSPosedBridge;
 import org.lsposed.lspd.util.Utils;
 
 import io.github.libxposed.api.XposedInterface;
 
+@Tag("CrashDumpHooker")
 public class CrashDumpHooker implements XposedInterface.Hooker {
 
     public static void beforeHookedMethod(XposedInterface.BeforeHookCallback callback) {

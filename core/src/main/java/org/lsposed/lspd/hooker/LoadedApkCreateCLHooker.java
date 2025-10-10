@@ -33,6 +33,7 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.lsposed.lspd.Tag;
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
 import org.lsposed.lspd.util.MetaDataReader;
@@ -55,7 +56,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModuleInterface;
 
-@SuppressLint("BlockedPrivateApi")
+@SuppressLint("BlockedPrivateApi") @Tag("LoadedApkCreateCLHooker")
 public class LoadedApkCreateCLHooker implements XposedInterface.Hooker {
     private final static Field defaultClassLoaderField;
 

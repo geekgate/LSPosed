@@ -22,6 +22,7 @@ package org.lsposed.lspd.hooker;
 
 import android.annotation.SuppressLint;
 
+import org.lsposed.lspd.Tag;
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
@@ -30,6 +31,8 @@ import org.lsposed.lspd.util.Utils;
 import io.github.libxposed.api.XposedInterface;
 
 // system_server initialization
+
+@Tag("HandleSystemServerProcessHooker")
 public class HandleSystemServerProcessHooker implements XposedInterface.Hooker {
 
     public static volatile ClassLoader systemServerCL;
