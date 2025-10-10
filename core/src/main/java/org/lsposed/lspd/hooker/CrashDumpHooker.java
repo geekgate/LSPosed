@@ -2,19 +2,20 @@ package org.lsposed.lspd.hooker;
 
 import android.util.Log;
 
-import org.lsposed.lspd.Tag;
+import androidx.annotation.NonNull;
+
 import org.lsposed.lspd.impl.LSPosedBridge;
 import org.lsposed.lspd.util.Utils;
 
+import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.XposedInterface;
 
-@Tag("CrashDumpHooker")
-public class CrashDumpHooker implements XposedInterface.Hooker {
+public class CrashDumpHooker implements Injector.PreInjector {
 
-    public static void beforeHookedMethod(XposedInterface.BeforeHookCallback callback) {
+    public void inject(@NonNull XposedInterface.BeforeHookCallback callback, @NonNull Object[] args) {
         Utils.logI("[Injected] CrashDumpHooker::beforeHookedMethod");
         try {
-            var e = (Throwable) callback.getArgs()[0];
+            var e = (Throwable) args[0];
             LSPosedBridge.log("Crash unexpectedly: " + Log.getStackTraceString(e));
         } catch (Throwable ignored) {
         }
