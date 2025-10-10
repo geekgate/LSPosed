@@ -24,6 +24,7 @@ import static org.lsposed.lspd.util.Utils.logD;
 
 import androidx.annotation.NonNull;
 
+import org.lsposed.lspd.Tag;
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
 import org.lsposed.lspd.util.Utils;
@@ -34,6 +35,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModuleInterface;
 
+@Tag("StartBootstrapServicesHooker")
 public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
 
     public static void beforeHookedMethod(XposedInterface.BeforeHookCallback callback) {

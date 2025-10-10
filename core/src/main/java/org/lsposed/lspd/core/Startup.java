@@ -27,6 +27,7 @@ import android.content.res.CompatibilityInfo;
 
 import com.android.internal.os.ZygoteInit;
 
+import org.lsposed.lspd.Tag;
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.hooker.AttachHooker;
 import org.lsposed.lspd.hooker.CrashDumpHooker;
@@ -45,6 +46,7 @@ import dalvik.system.DexFile;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 
+@Tag("Startup")
 public class Startup {
     private static void startBootstrapHook(boolean isSystem) {
         Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
