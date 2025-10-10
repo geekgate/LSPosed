@@ -1,5 +1,6 @@
 -keep class de.robv.android.xposed.** {*;}
 -keep class io.github.libxposed.** {*;}
+# -keep class org.lsposed.lspd.** {*;}
 -keepattributes RuntimeVisibleAnnotations
 -keep class android.** { *; }
 -keepclasseswithmembers,includedescriptorclasses class * {
