@@ -31,12 +31,12 @@ import org.lsposed.lspd.util.Utils;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.XposedModuleInterface;
 
-public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
+public class StartBootstrapServicesHooker implements Injector.PreInjector {
 
-    public static void beforeHookedMethod(XposedInterface.BeforeHookCallback callback) {
+    public void inject(@NonNull XposedInterface.BeforeHookCallback callback, @NonNull Object[] args) {
         logD("SystemServer#startBootstrapServices() starts");
         Utils.logI("[Injected] StartBootstrapServicesHooker::beforeHookedMethod");
         try {
@@ -50,13 +50,7 @@ public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
             lpparam.isFirstApplication = true;
             XC_LoadPackage.callAll(lpparam);
 
-            LSPosedContext.callOnSystemServerLoaded(new XposedModuleInterface.SystemServerLoadedParam() {
-                @Override
-                @NonNull
-                public ClassLoader getClassLoader() {
-                    return HandleSystemServerProcessHooker.systemServerCL;
-                }
-            });
+            LSPosedContext.callOnSystemServerLoaded(() -> HandleSystemServerProcessHooker.systemServerCL);
         } catch (Throwable t) {
             Hookers.logE("error when hooking startBootstrapServices", t);
         }

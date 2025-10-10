@@ -25,17 +25,20 @@ import android.app.LoadedApk;
 import android.content.pm.ApplicationInfo;
 import android.content.res.CompatibilityInfo;
 
+import androidx.annotation.NonNull;
+
 import com.android.internal.os.ZygoteInit;
 
+import org.jetbrains.annotations.Contract;
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.hooker.AttachHooker;
 import org.lsposed.lspd.hooker.CrashDumpHooker;
 import org.lsposed.lspd.hooker.HandleSystemServerProcessHooker;
-import org.lsposed.lspd.hooker.LoadedApkCtorHooker;
 import org.lsposed.lspd.hooker.LoadedApkCreateCLHooker;
+import org.lsposed.lspd.hooker.LoadedApkCtorHooker;
 import org.lsposed.lspd.hooker.OpenDexFileHooker;
 import org.lsposed.lspd.impl.LSPosedContext;
-import org.lsposed.lspd.impl.LSPosedHelper;
+import org.lsposed.lspd.impl.Reflector;
 import org.lsposed.lspd.service.ILSPApplicationService;
 import org.lsposed.lspd.util.Utils;
 
@@ -44,31 +47,69 @@ import java.util.List;
 import dalvik.system.DexFile;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
+import io.github.libxposed.api.errors.HookFailedError;
 
 public class Startup {
-    private static void startBootstrapHook(boolean isSystem) {
+
+    @NonNull
+    @Contract("_, _, _ -> new")
+    public static Reflector reflect(Class<?> cls, String method, Class<?> ... params) {
+        try {
+            return new Reflector(cls, method, params);
+        } catch (NoSuchMethodException e) {
+            throw new HookFailedError(e);
+        }
+    }
+    @NonNull
+    public static Reflector wildcard(Class<?> cls, String method) {
+        try {
+            return Reflector.wildcard(cls, method);
+        } catch (NoSuchMethodException e) {
+            throw new HookFailedError(e);
+        }
+    }
+    @NonNull
+    @Contract("_, _ -> new")
+    public static Reflector constructor(Class<?> cls, Class<?> ... params) {
+        try {
+            return new Reflector(cls, params);
+        } catch (NoSuchMethodException e) {
+            throw new HookFailedError(e);
+        }
+    }
+
+    private static void startBootstrapHook(boolean isSystem) throws NoSuchMethodException {
         Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
         Utils.logI("startup: Thread->dispatchUncaughtException(...)");
-        LSPosedHelper.hookMethod(CrashDumpHooker.class, Thread.class, "dispatchUncaughtException", Throwable.class);
+
+        reflect(Thread.class, "dispatchUncaughtException", Throwable.class).inject(new CrashDumpHooker());
+
         if (isSystem) {
-            Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(...)");
-            LSPosedHelper.hookAllMethods(HandleSystemServerProcessHooker.class, ZygoteInit.class, "handleSystemServerProcess");
+            Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(*)");
+            wildcard(ZygoteInit.class, "handleSystemServerProcess").inject(new HandleSystemServerProcessHooker());
         } else {
-            Utils.logI("startup: DexFile->openDexFile(...)");
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openDexFile");
-            Utils.logI("startup: DexFile->openInMemoryDexFile(...)");
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFile");
-            Utils.logI("startup: DexFile->openInMemoryDexFiles(...)");
-            LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFiles");
+            Utils.logI("startup: DexFile->openDexFile(*)");
+            wildcard(DexFile.class, "openDexFile").inject(new OpenDexFileHooker());
+            Utils.logI("startup: DexFile->openInMemoryDexFile(*)");
+            wildcard(DexFile.class, "openInMemoryDexFile").inject(new OpenDexFileHooker());
+            Utils.logI("startup: DexFile->openInMemoryDexFiles(*)");
+            wildcard(DexFile.class, "openInMemoryDexFiles").inject(new OpenDexFileHooker());
         }
         Utils.logI("startup: LoadedApk-><init>(...)");
-        LSPosedHelper.hookConstructor(LoadedApkCtorHooker.class, LoadedApk.class,
-                ActivityThread.class, ApplicationInfo.class, CompatibilityInfo.class,
-                ClassLoader.class, boolean.class, boolean.class, boolean.class);
+        constructor(LoadedApk.class,
+            ActivityThread.class,
+            ApplicationInfo.class,
+            CompatibilityInfo.class,
+            ClassLoader.class,
+            boolean.class,
+            boolean.class,
+            boolean.class)
+            .inject(new LoadedApkCtorHooker());
+
         Utils.logI("startup: LoadedApk->createOrUpdateClassLoaderLocked(...)");
-        LSPosedHelper.hookMethod(LoadedApkCreateCLHooker.class, LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class);
+        reflect(LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class).inject(new LoadedApkCreateCLHooker());
         Utils.logI("startup: ActivityThread->attach(*)");
-        LSPosedHelper.hookAllMethods(AttachHooker.class, ActivityThread.class, "attach");
+        wildcard(ActivityThread.class, "attach").inject(new AttachHooker());
     }
 
     public static void bootstrapXposed() {
