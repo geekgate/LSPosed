@@ -78,24 +78,24 @@ public class Startup {
         }
     }
 
-    private static void startBootstrapHook(boolean isSystem) throws NoSuchMethodException {
-        Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
-        Utils.logI("startup: Thread->dispatchUncaughtException(...)");
+    private static void startBootstrapHook(boolean isSystem) throws HookFailedError {
+        // Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
+        // Utils.logI("startup: Thread->dispatchUncaughtException(...)");
 
         reflect(Thread.class, "dispatchUncaughtException", Throwable.class).inject(new CrashDumpHooker());
 
         if (isSystem) {
-            Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(*)");
+            // Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(*)");
             wildcard(ZygoteInit.class, "handleSystemServerProcess").inject(new HandleSystemServerProcessHooker());
         } else {
-            Utils.logI("startup: DexFile->openDexFile(*)");
+            // Utils.logI("startup: DexFile->openDexFile(*)");
             wildcard(DexFile.class, "openDexFile").inject(new OpenDexFileHooker());
-            Utils.logI("startup: DexFile->openInMemoryDexFile(*)");
+            // Utils.logI("startup: DexFile->openInMemoryDexFile(*)");
             wildcard(DexFile.class, "openInMemoryDexFile").inject(new OpenDexFileHooker());
-            Utils.logI("startup: DexFile->openInMemoryDexFiles(*)");
+            // Utils.logI("startup: DexFile->openInMemoryDexFiles(*)");
             wildcard(DexFile.class, "openInMemoryDexFiles").inject(new OpenDexFileHooker());
         }
-        Utils.logI("startup: LoadedApk-><init>(...)");
+        // Utils.logI("startup: LoadedApk-><init>(...)");
         constructor(LoadedApk.class,
             ActivityThread.class,
             ApplicationInfo.class,
@@ -106,9 +106,9 @@ public class Startup {
             boolean.class)
             .inject(new LoadedApkCtorHooker());
 
-        Utils.logI("startup: LoadedApk->createOrUpdateClassLoaderLocked(...)");
+        // Utils.logI("startup: LoadedApk->createOrUpdateClassLoaderLocked(...)");
         reflect(LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class).inject(new LoadedApkCreateCLHooker());
-        Utils.logI("startup: ActivityThread->attach(*)");
+        // Utils.logI("startup: ActivityThread->attach(*)");
         wildcard(ActivityThread.class, "attach").inject(new AttachHooker());
     }
 
