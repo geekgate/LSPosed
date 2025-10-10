@@ -48,18 +48,26 @@ import de.robv.android.xposed.XposedInit;
 public class Startup {
     private static void startBootstrapHook(boolean isSystem) {
         Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
+        Utils.logI("startup: dispatchUncaughtException(...)");
         LSPosedHelper.hookMethod(CrashDumpHooker.class, Thread.class, "dispatchUncaughtException", Throwable.class);
         if (isSystem) {
+            Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(...)");
             LSPosedHelper.hookAllMethods(HandleSystemServerProcessHooker.class, ZygoteInit.class, "handleSystemServerProcess");
         } else {
+            Utils.logI("startup: DexFile->openDexFile(...)");
             LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openDexFile");
+            Utils.logI("startup: DexFile->openInMemoryDexFile(...)");
             LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFile");
+            Utils.logI("startup: DexFile->openInMemoryDexFiles(...)");
             LSPosedHelper.hookAllMethods(OpenDexFileHooker.class, DexFile.class, "openInMemoryDexFiles");
         }
+        Utils.logI("startup: LoadedApk-><init>(...)");
         LSPosedHelper.hookConstructor(LoadedApkCtorHooker.class, LoadedApk.class,
                 ActivityThread.class, ApplicationInfo.class, CompatibilityInfo.class,
                 ClassLoader.class, boolean.class, boolean.class, boolean.class);
+        Utils.logI("startup: LoadedApk->createOrUpdateClassLoaderLocked(...)");
         LSPosedHelper.hookMethod(LoadedApkCreateCLHooker.class, LoadedApk.class, "createOrUpdateClassLoaderLocked", List.class);
+        Utils.logI("startup: ActivityThread->attach(*)");
         LSPosedHelper.hookAllMethods(AttachHooker.class, ActivityThread.class, "attach");
     }
 

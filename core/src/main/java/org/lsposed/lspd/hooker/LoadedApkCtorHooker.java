@@ -25,6 +25,7 @@ import android.content.res.XResources;
 import android.util.Log;
 
 import org.lsposed.lspd.util.Hookers;
+import org.lsposed.lspd.util.Utils;
 
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
@@ -35,7 +36,7 @@ public class LoadedApkCtorHooker implements XposedInterface.Hooker {
 
     public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
         Hookers.logD("LoadedApk#<init> starts");
-
+        Utils.logI("[Injected] LoadedApkCtorHooker::afterHookedMethod");
         try {
             LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
             assert loadedApk != null;

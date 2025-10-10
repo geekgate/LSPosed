@@ -25,6 +25,7 @@ import android.annotation.SuppressLint;
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
+import org.lsposed.lspd.util.Utils;
 
 import io.github.libxposed.api.XposedInterface;
 
@@ -36,6 +37,7 @@ public class HandleSystemServerProcessHooker implements XposedInterface.Hooker {
     @SuppressLint("PrivateApi")
     public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
+        Utils.logI("[Injected] HandleSystemServerProcessHooker::afterHookedMethod");
         try {
             // get system_server classLoader
             systemServerCL = Thread.currentThread().getContextClassLoader();

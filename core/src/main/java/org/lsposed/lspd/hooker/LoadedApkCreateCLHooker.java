@@ -79,7 +79,7 @@ public class LoadedApkCreateCLHooker implements XposedInterface.Hooker {
 
     public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
         LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
-
+        Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
         if (callback.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
         }

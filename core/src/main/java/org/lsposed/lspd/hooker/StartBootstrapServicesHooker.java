@@ -26,6 +26,7 @@ import androidx.annotation.NonNull;
 
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
+import org.lsposed.lspd.util.Utils;
 
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
@@ -37,7 +38,7 @@ public class StartBootstrapServicesHooker implements XposedInterface.Hooker {
 
     public static void beforeHookedMethod(XposedInterface.BeforeHookCallback callback) {
         logD("SystemServer#startBootstrapServices() starts");
-
+        Utils.logI("[Injected] StartBootstrapServicesHooker::beforeHookedMethod");
         try {
             XposedInit.loadedPackagesInProcess.add("android");
 

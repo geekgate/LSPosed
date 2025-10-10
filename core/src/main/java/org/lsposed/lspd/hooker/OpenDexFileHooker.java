@@ -4,12 +4,14 @@ import android.os.Build;
 
 import org.lsposed.lspd.impl.LSPosedBridge;
 import org.lsposed.lspd.nativebridge.HookBridge;
+import org.lsposed.lspd.util.Utils;
 
 import io.github.libxposed.api.XposedInterface;
 
 public class OpenDexFileHooker implements XposedInterface.Hooker {
 
     public static void afterHookedMethod(XposedInterface.AfterHookCallback callback) {
+        Utils.logI("[Injected] OpenDexFileHooker::afterHookedMethod");
         ClassLoader classLoader = null;
         for (var arg : callback.getArgs()) {
             if (arg instanceof ClassLoader) {

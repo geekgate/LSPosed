@@ -242,19 +242,19 @@ public class LSPosedBridge {
             }
             if (isBeforeInvocation(method)) {
                 if (beforeInvocation != null) {
-                    throw new IllegalArgumentException("More than one method annotated with @BeforeInvocation");
+                    throw new IllegalArgumentException("More than one method annotated with before invocation");
                 }
                 beforeInvocation = method;
             }
             if (isAfterInvocation( method )) {
                 if (afterInvocation != null) {
-                    throw new IllegalArgumentException("More than one method annotated with @AfterInvocation");
+                    throw new IllegalArgumentException("More than one method annotated with after invocation");
                 }
                 afterInvocation = method;
             }
         }
         if (beforeInvocation == null && afterInvocation == null) {
-            throw new IllegalArgumentException("No method annotated with @BeforeInvocation or @AfterInvocation");
+            throw new IllegalArgumentException("before/after invocation undefined");
         }
         try {
             if (beforeInvocation == null) {
