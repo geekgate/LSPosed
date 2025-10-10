@@ -210,15 +210,12 @@ public class LSPosedBridge {
 
     private static boolean isBeforeInvocation(Method method) {
         var ps = method.getParameterTypes();
-        return ps.length == 1
-                && ps[0].equals(XposedInterface.BeforeHookCallback.class);
+        return ps.length == 1 && ps[0].equals(XposedInterface.BeforeHookCallback.class);
     }
 
     private static boolean isAfterInvocation(Method method) {
         var ps = method.getParameterTypes();
-        return ps.length >= 1
-                && ps[0].equals(XposedInterface.AfterHookCallback.class)
-                && method.getReturnType().equals(void.class);
+        return ps.length > 0 && ps[0].equals(XposedInterface.AfterHookCallback.class);
     }
 
     @NonNull
@@ -235,26 +232,32 @@ public class LSPosedBridge {
         }
 
         Method beforeInvocation = null, afterInvocation = null;
-        var modifiers = Modifier.PUBLIC | Modifier.STATIC;
+
         for (var method : hooker.getDeclaredMethods()) {
-            if ((method.getModifiers() & modifiers) != modifiers) {
-                continue;
-            }
-            if (isBeforeInvocation(method)) {
-                if (beforeInvocation != null) {
-                    throw new IllegalArgumentException("More than one method annotated with before invocation");
+            var m = method.getModifiers();
+
+            if (Modifier.isPublic(m) && Modifier.isStatic(m)) {
+                if (isBeforeInvocation( method )) {
+                    if (beforeInvocation != null) {
+                        throw new IllegalArgumentException("More than one method with before invocation");
+                    }
+                    beforeInvocation = method;
+                    continue;
                 }
-                beforeInvocation = method;
-            }
-            if (isAfterInvocation( method )) {
-                if (afterInvocation != null) {
-                    throw new IllegalArgumentException("More than one method annotated with after invocation");
+                if (isAfterInvocation( method )) {
+                    if (afterInvocation != null) {
+                        throw new IllegalArgumentException("More than one method with after invocation");
+                    }
+                    afterInvocation = method;
+                    continue;
                 }
-                afterInvocation = method;
             }
+
+            Log.i("[omitted]", method.getName() + ": " +  method);
         }
+
         if (beforeInvocation == null && afterInvocation == null) {
-            throw new IllegalArgumentException("before/after invocation undefined");
+            throw new IllegalArgumentException("before/after invocation undefined: " + hooker.getCanonicalName() );
         }
         try {
             if (beforeInvocation == null) {

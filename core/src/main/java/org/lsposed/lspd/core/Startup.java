@@ -48,7 +48,7 @@ import de.robv.android.xposed.XposedInit;
 public class Startup {
     private static void startBootstrapHook(boolean isSystem) {
         Utils.logD("startBootstrapHook starts: isSystem = " + isSystem);
-        Utils.logI("startup: dispatchUncaughtException(...)");
+        Utils.logI("startup: Thread->dispatchUncaughtException(...)");
         LSPosedHelper.hookMethod(CrashDumpHooker.class, Thread.class, "dispatchUncaughtException", Throwable.class);
         if (isSystem) {
             Utils.logI("startup: [system] ZygoteInit->handleSystemServerProcess(...)");
