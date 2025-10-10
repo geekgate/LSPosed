@@ -77,7 +77,7 @@ public class LoadedApkCreateCLHooker implements Injector.PostInjector {
 
     public void inject(XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
         LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
-        Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
+        // Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
         if (callback.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
         }

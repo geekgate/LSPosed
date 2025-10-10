@@ -27,7 +27,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.lsposed.lspd.util.Hookers;
-import org.lsposed.lspd.util.Utils;
 
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
@@ -40,7 +39,7 @@ public class LoadedApkCtorHooker implements Injector.PostInjector {
 
     public void inject(@NonNull XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
         Hookers.logD("LoadedApk#<init> starts");
-        Utils.logI("[Injected] LoadedApkCtorHooker::afterHookedMethod");
+        // Utils.logI("[Injected] LoadedApkCtorHooker::afterHookedMethod");
         try {
             LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
             assert loadedApk != null;

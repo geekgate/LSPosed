@@ -27,7 +27,6 @@ import androidx.annotation.NonNull;
 import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
-import org.lsposed.lspd.util.Utils;
 
 import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.XposedInterface;
@@ -41,7 +40,7 @@ public class HandleSystemServerProcessHooker implements Injector.PostInjector {
     @SuppressLint("PrivateApi")
     public void inject(@NonNull XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
-        Utils.logI("[Injected] HandleSystemServerProcessHooker::afterHookedMethod");
+        // Utils.logI("[Injected] HandleSystemServerProcessHooker::afterHookedMethod");
         try {
             // get system_server classLoader
             systemServerCL = Thread.currentThread().getContextClassLoader();
