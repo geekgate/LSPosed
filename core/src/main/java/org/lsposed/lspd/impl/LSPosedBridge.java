@@ -210,12 +210,12 @@ public class LSPosedBridge {
 
     private static boolean isBeforeInvocation(Method method) {
         var ps = method.getParameterTypes();
-        return ps.length == 1 && ps[0].equals(XposedInterface.BeforeHookCallback.class);
+        return ps.length == 1 && ps[0]==XposedInterface.BeforeHookCallback.class;
     }
 
     private static boolean isAfterInvocation(Method method) {
         var ps = method.getParameterTypes();
-        return ps.length > 0 && ps[0].equals(XposedInterface.AfterHookCallback.class);
+        return ps.length > 0 && ps[0]==XposedInterface.AfterHookCallback.class;
     }
 
     @NonNull
@@ -253,7 +253,7 @@ public class LSPosedBridge {
                 }
             }
 
-            Log.i("[omitted]", method.getName() + ": " +  method);
+            Log.i(TAG, method.toString());
         }
 
         if (beforeInvocation == null && afterInvocation == null) {
