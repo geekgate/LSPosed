@@ -7,7 +7,9 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.errors.HookFailedError;
 
@@ -27,7 +29,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Injector.PreInjector injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    hookMethod(Pre injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
@@ -38,7 +40,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Injector.PostInjector injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    hookMethod(Post injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
@@ -49,7 +51,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Injector.Hook injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    hookMethod(Hook injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
@@ -73,7 +75,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Injector.PreInjector injector) {
+    hookAllMethods(@NonNull Class<T> clazz, String methodName, Pre injector) {
         var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -85,7 +87,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Injector.PostInjector injector) {
+    hookAllMethods(@NonNull Class<T> clazz, String methodName, Post injector) {
         var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -98,7 +100,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Injector.Hook injector) {
+    hookAllMethods(@NonNull Class<T> clazz, String methodName, Hook injector) {
         var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -111,7 +113,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Injector.PreInjector injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    hookConstructor(Pre injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);
@@ -122,7 +124,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Injector.PostInjector injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    hookConstructor(Post injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);
@@ -133,7 +135,7 @@ public class LSPosedHelper {
     @NonNull
     @SuppressWarnings("UnusedReturnValue")
     public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Injector.Hook injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    hookConstructor(Hook injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);

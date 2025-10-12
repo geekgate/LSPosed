@@ -7,7 +7,9 @@ import org.jetbrains.annotations.Contract;
 import java.lang.reflect.Executable;
 import java.util.ArrayList;
 
-import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedInterface;
 
 public class Reflector {
@@ -32,32 +34,32 @@ public class Reflector {
         }
         return new Reflector(members.toArray(new Executable[0]));
     }
-    public void inject(Injector.PreInjector injector, int priority) {
+    public void inject(Pre injector, int priority) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public void inject(Injector.PostInjector injector, int priority) {
+    public void inject(Post injector, int priority) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public void inject(Injector.Hook injector, int priority) {
+    public void inject(Hook injector, int priority) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public void inject(Injector.Hook injector) {
+    public void inject(Hook injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, XposedInterface.PRIORITY_DEFAULT, injector);
         }
     }
-    public void inject(Injector.PreInjector injector) {
+    public void inject(Pre injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, XposedInterface.PRIORITY_DEFAULT, injector);
         }
     }
-    public void inject(Injector.PostInjector injector) {
+    public void inject(Post injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, XposedInterface.PRIORITY_DEFAULT, injector);
         }

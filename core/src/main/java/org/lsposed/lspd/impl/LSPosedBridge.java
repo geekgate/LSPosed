@@ -13,7 +13,10 @@ import java.lang.reflect.Modifier;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import io.github.libxposed.api.Hook;
 import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.errors.HookFailedError;
 
@@ -296,7 +299,7 @@ public class LSPosedBridge {
     private static class Callback<T extends Executable> extends XC_MethodHook {
 
         private final Injector injector;
-        private final LSPosedHookCallback<T> callback = new LSPosedHookCallback<>();
+        private final LSPosedHookContext context = new LSPosedHookContext();
 
         Callback(Injector injector, int priority) {
             super(priority);
@@ -304,29 +307,33 @@ public class LSPosedBridge {
         }
 
         private void refresh(XC_MethodHook.MethodHookParam<?> param) {
-            callback.method     = param.method;
-            callback.thisObject = param.thisObject;
-            callback.args       = param.args;
-            callback.result     = param.result;
-            callback.throwable  = param.throwable;
-            callback.isSkipped  = param.returnEarly;
+            context.method     = param.method;
+            context.thisObject = param.thisObject;
+            context.args       = param.args;
+            context.result     = param.result;
+            context.throwable  = param.throwable;
+            context.isSkipped  = param.returnEarly;
         }
 
         private void restore(MethodHookParam<?> param) {
-            param.args = callback.args;
-            param.result = callback.result;
-            param.throwable = callback.throwable;
-            param.returnEarly = callback.isSkipped;
+            param.args = context.args;
+            param.result = context.result;
+            param.throwable = context.throwable;
+            param.returnEarly = context.isSkipped;
         }
 
         @Override
         protected void beforeHookedMethod(MethodHookParam<?> param) throws Throwable {
             refresh(param);
-            if (injector instanceof Injector.Hook x) {
-                x.inject(callback, callback.args);
-                restore(param);
-            } else if (injector instanceof Injector.PreInjector x) {
-                x.inject(callback, callback.args);
+            try {
+                if (injector instanceof Hook x) {
+                    var c = x.wrap((Pre.Context) context);
+                    x.inject(c != null ? c : context, context.args);
+                } else if (injector instanceof Pre x) {
+                    var c = x.wrap(context);
+                    x.inject(c != null ? c : context, context.args);
+                }
+            } finally {
                 restore(param);
             }
         }
@@ -334,26 +341,30 @@ public class LSPosedBridge {
         @Override
         protected void afterHookedMethod(MethodHookParam<?> param) throws Throwable {
             refresh(param);
-            if (injector instanceof Injector.Hook x) {
-                x.inject(callback, callback.result, callback.throwable);
-                restore(param);
-            } else if (injector instanceof Injector.PostInjector x) {
-                x.inject(callback, callback.result, callback.throwable);
+            try {
+                if (injector instanceof Hook x) {
+                    var c = x.wrap((Post.Context) context);
+                    x.inject(c != null ? c : context, context.result, context.throwable);
+                } else if (injector instanceof Post x) {
+                    var c = x.wrap(context);
+                    x.inject(c != null ? c : context, context.result, context.throwable);
+                }
+            } finally {
                 restore(param);
             }
         }
     }
 
     public static <T extends Executable> XposedInterface.MethodUnhooker<T>
-    hook(T hookMethod, int priority, Injector.PreInjector injector) {
+    hook(T hookMethod, int priority, Pre injector) {
         return inject(hookMethod, priority, injector);
     }
     public static <T extends Executable> XposedInterface.MethodUnhooker<T>
-    hook(T hookMethod, int priority, Injector.PostInjector injector) {
+    hook(T hookMethod, int priority, Post injector) {
         return inject(hookMethod, priority, injector);
     }
     public static <T extends Executable> XposedInterface.MethodUnhooker<T>
-    hook(T hookMethod, int priority, Injector.Hook injector) {
+    hook(T hookMethod, int priority, Hook injector) {
         return inject(hookMethod, priority, injector);
     }
 

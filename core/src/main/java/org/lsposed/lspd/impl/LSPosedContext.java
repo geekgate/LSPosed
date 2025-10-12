@@ -14,13 +14,13 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import org.lsposed.lspd.util.ConfigManager;
 import org.lsposed.lspd.core.BuildConfig;
 import org.lsposed.lspd.impl.utils.LSPosedDexParser;
 import org.lsposed.lspd.models.Module;
 import org.lsposed.lspd.nativebridge.HookBridge;
 import org.lsposed.lspd.nativebridge.NativeAPI;
 import org.lsposed.lspd.service.ILSPInjectedModuleService;
+import org.lsposed.lspd.util.ConfigManager;
 import org.lsposed.lspd.util.LspModuleClassLoader;
 
 import java.io.File;
@@ -38,7 +38,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
@@ -175,17 +177,17 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.PreInjector injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Pre injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.PostInjector injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Post injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.Hook injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
@@ -213,17 +215,17 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.PreInjector injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Pre injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.PostInjector injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Post injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.Hook injector) {
+    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
@@ -234,17 +236,17 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.PreInjector injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Pre injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.PostInjector injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Post injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.Hook injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
@@ -255,17 +257,17 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.PreInjector injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Pre injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.PostInjector injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Post injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.Hook injector) {
+    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
@@ -429,7 +431,6 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @NonNull
-    @Override
     public List<PackageInfo> getInstalledPackages(boolean force) throws RemoteException {
         return ConfigManager.getAppList(force);
     }

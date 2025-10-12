@@ -49,12 +49,11 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
-import io.github.libxposed.api.Injector;
-import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.Post;
 import io.github.libxposed.api.XposedModuleInterface;
 
 @SuppressLint("BlockedPrivateApi")
-public class LoadedApkCreateCLHooker implements Injector.PostInjector {
+public class LoadedApkCreateCLHooker implements Post {
     private final static Field defaultClassLoaderField;
 
     private final static Set<LoadedApk> loadedApks = ConcurrentHashMap.newKeySet();
@@ -75,10 +74,10 @@ public class LoadedApkCreateCLHooker implements Injector.PostInjector {
         loadedApks.add(loadedApk);
     }
 
-    public void inject(XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
-        LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
+    public void inject(Context ctx, Object returnValue, Throwable throwable) {
+        LoadedApk loadedApk = (LoadedApk) ctx.getThisObject();
         // Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
-        if (callback.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
+        if (ctx.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
         }
 
