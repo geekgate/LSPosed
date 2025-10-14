@@ -20,6 +20,8 @@
 
 package de.robv.android.xposed;
 
+import org.lsposed.lspd.nativebridge.HookBridge;
+
 import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 import java.util.HashMap;
@@ -200,11 +202,11 @@ public abstract class XC_MethodHook extends XCallback {
             return XC_MethodHook.this;
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public void unhook() {
-            XposedBridge.unhookMethod(hookMethod, XC_MethodHook.this);
+            if (hookMethod instanceof Executable) {
+                HookBridge.unhookMethod(false, (Executable) hookMethod, getCallback());
+            }
         }
-
     }
 }

@@ -27,12 +27,14 @@ import androidx.annotation.NonNull;
 import org.lsposed.lspd.impl.LSPosedContext;
 import org.lsposed.lspd.util.Hookers;
 
+import java.lang.reflect.Method;
+
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.Pre;
 
-public class StartBootstrapServicesHooker implements Pre {
+public class StartBootstrapServicesHooker implements Pre.Default {
 
     public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         logD("SystemServer#startBootstrapServices() starts");

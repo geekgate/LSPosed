@@ -9,7 +9,7 @@ import org.lsposed.lspd.nativebridge.HookBridge;
 
 import io.github.libxposed.api.Post;
 
-public class OpenDexFileHooker implements Post {
+public class OpenDexFileHooker implements Post.Default {
 
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         // Utils.logI("[Injected] OpenDexFileHooker::afterHookedMethod");
@@ -24,7 +24,7 @@ public class OpenDexFileHooker implements Post {
         }
         while (classLoader != null) {
             if (classLoader == LSPosedBridge.class.getClassLoader()) {
-                HookBridge.setTrusted(ctx.getResult());
+                HookBridge.setTrusted(returnValue);
                 return;
             } else {
                 classLoader = classLoader.getParent();

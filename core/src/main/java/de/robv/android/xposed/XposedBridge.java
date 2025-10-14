@@ -26,7 +26,7 @@ import android.content.res.TypedArray;
 import android.util.Log;
 
 import org.lsposed.lspd.impl.LSPosedBridge;
-import org.lsposed.lspd.impl.LSPosedHookCallback;
+import org.lsposed.lspd.impl.LSPosedHookContext;
 import org.lsposed.lspd.nativebridge.HookBridge;
 import org.lsposed.lspd.nativebridge.ResourcesHook;
 
@@ -50,6 +50,7 @@ import io.github.libxposed.api.XposedInterface;
  * This class contains most of Xposed's central logic, such as initialization and callbacks used by
  * the native side. It also includes methods to add new hooks.
  */
+@SuppressWarnings("unused")
 public final class XposedBridge {
     /**
      * The system class loader which can be used to locate Android framework classes.
@@ -207,27 +208,12 @@ public final class XposedBridge {
             throw new IllegalArgumentException("callback should not be null!");
         }
 
-        if (!HookBridge.hookMethod(false, (Executable) hookMethod, LSPosedBridge.NativeHooker.class, callback.priority, callback)) {
+        if (!HookBridge.hookMethod(false, (Executable) hookMethod, LSPosedBridge.NativeInjector.class, callback.priority, callback)) {
             log("Failed to hook " + hookMethod);
             return null;
         }
 
         return callback.new Unhook(hookMethod);
-    }
-
-    /**
-     * Removes the callback for a hooked method/constructor.
-     *
-     * @param hookMethod The method for which the callback should be removed.
-     * @param callback   The reference to the callback as specified in {@link #hookMethod}.
-     * @deprecated Use {@link XC_MethodHook.Unhook#unhook} instead. An instance of the {@code Unhook}
-     * class is returned when you hook the method.
-     */
-    @Deprecated
-    public static void unhookMethod(Member hookMethod, XC_MethodHook callback) {
-        if (hookMethod instanceof Executable) {
-            HookBridge.unhookMethod(false, (Executable) hookMethod, callback);
-        }
     }
 
     /**
@@ -373,6 +359,7 @@ public final class XposedBridge {
             return elements;
         }
 
+        @SuppressWarnings("unchecked")
         public <T> T[] getSnapshot(T[] a) {
             var snapshot = getSnapshot();
             return (T[]) Arrays.copyOf(snapshot, snapshot.length, a.getClass());
@@ -385,19 +372,19 @@ public final class XposedBridge {
 
     public static class LegacyApiSupport<T extends Executable> {
         private final XC_MethodHook.MethodHookParam<T> param;
-        private final LSPosedHookCallback<T> callback;
+        private final LSPosedHookContext context;
         private final Object[] snapshot;
 
         private int beforeIdx;
 
-        public LegacyApiSupport(LSPosedHookCallback<T> callback, Object[] legacySnapshot) {
+        public LegacyApiSupport(LSPosedHookContext context, Object[] legacySnapshot) {
             this.param = new XC_MethodHook.MethodHookParam<>();
-            this.callback = callback;
+            this.context = context;
             this.snapshot = legacySnapshot;
         }
 
         public void handleBefore() {
-            syncronizeApi(param, callback, true);
+            sync(param, context, true);
             for (beforeIdx = 0; beforeIdx < snapshot.length; beforeIdx++) {
                 try {
                     var cb = (XC_MethodHook) snapshot[beforeIdx];
@@ -417,11 +404,11 @@ public final class XposedBridge {
                     break;
                 }
             }
-            syncronizeApi(param, callback, false);
+            sync(param, context, false);
         }
 
         public void handleAfter() {
-            syncronizeApi(param, callback, true);
+            sync(param, context, true);
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
                 Object lastResult = param.getResult();
                 Throwable lastThrowable = param.getThrowable();
@@ -439,19 +426,19 @@ public final class XposedBridge {
                     }
                 }
             }
-            syncronizeApi(param, callback, false);
+            sync(param, context, false);
         }
 
-        private void syncronizeApi(XC_MethodHook.MethodHookParam<T> param, LSPosedHookCallback<T> callback, boolean forward) {
+        private void sync(XC_MethodHook.MethodHookParam<T> param, LSPosedHookContext callback, boolean forward) {
             if (forward) {
-                param.method = callback.method;
+                param.method = callback.target;
                 param.thisObject = callback.thisObject;
                 param.args = callback.args;
                 param.result = callback.result;
                 param.throwable = callback.throwable;
                 param.returnEarly = callback.isSkipped;
             } else {
-                callback.method = param.method;
+                callback.target = (Executable) param.method;
                 callback.thisObject = param.thisObject;
                 callback.args = param.args;
                 callback.result = param.result;
@@ -460,4 +447,5 @@ public final class XposedBridge {
             }
         }
     }
+
 }

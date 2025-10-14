@@ -50,10 +50,11 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedModuleInterface;
 
 @SuppressLint("BlockedPrivateApi")
-public class LoadedApkCreateCLHooker implements Post {
+public class LoadedApkCreateCLHooker implements Post.Default {
     private final static Field defaultClassLoaderField;
 
     private final static Set<LoadedApk> loadedApks = ConcurrentHashMap.newKeySet();

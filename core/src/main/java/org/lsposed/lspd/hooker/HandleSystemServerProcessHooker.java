@@ -29,10 +29,11 @@ import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
 
 import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 
 // system_server initialization
 
-public class HandleSystemServerProcessHooker implements Post {
+public class HandleSystemServerProcessHooker implements Post.Default {
 
     public static volatile ClassLoader systemServerCL;
 

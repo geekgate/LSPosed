@@ -7,149 +7,96 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.github.libxposed.api.Handler;
 import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.Post;
 import io.github.libxposed.api.Pre;
-import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.errors.HookFailedError;
 
+@SuppressWarnings("unused")
 public class LSPosedHelper {
 
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Class<? extends XposedInterface.Hooker> hooker, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Handler<Method> hookMethod(Pre<?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, hooker);
+            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Pre injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Handler<Method> hookMethod(Post<?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Post injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Handler<Method> hookMethod(Hook<?, ?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Method>
-    hookMethod(Hook injector, @NonNull Class<T> clazz, String methodName, Class<?>... parameterTypes) {
-        try {
-            var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector);
-        } catch (NoSuchMethodException e) {
-            throw new HookFailedError(e);
-        }
-    }
-
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(Class<? extends XposedInterface.Hooker> hooker, @NonNull Class<T> clazz, String methodName) {
-        var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Pre<?> injector) {
+        var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, hooker));
+                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
             }
         }
         return unhooks;
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Pre injector) {
-        var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Post<?> injector) {
+        var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector));
+                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
             }
         }
         return unhooks;
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Post injector) {
-        var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Hook<?, ?> injector) {
+        var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector));
+                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
             }
         }
         return unhooks;
     }
-
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> Set<XposedInterface.MethodUnhooker<Method>>
-    hookAllMethods(@NonNull Class<T> clazz, String methodName, Hook injector) {
-        var unhooks = new HashSet<XposedInterface.MethodUnhooker<Method>>();
-        for (var method : clazz.getDeclaredMethods()) {
-            if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, XposedInterface.PRIORITY_DEFAULT, injector));
-            }
-        }
-        return unhooks;
-    }
-
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Pre injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static <T> Handler<Constructor<T>> hookConstructor(Pre<?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Post injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static <T> Handler<Constructor<T>> hookConstructor(Post<?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
     }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Hook injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    @NonNull @SuppressWarnings("UnusedReturnValue")
+    public static <T> Handler<Constructor<T>> hookConstructor(Hook<?, ?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, injector);
-        } catch (NoSuchMethodException e) {
-            throw new HookFailedError(e);
-        }
-    }
-    @NonNull
-    @SuppressWarnings("UnusedReturnValue")
-    public static <T> XposedInterface.MethodUnhooker<Constructor<T>>
-    hookConstructor(Class<? extends XposedInterface.Hooker> hooker, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
-        try {
-            var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, XposedInterface.PRIORITY_DEFAULT, hooker);
+            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
