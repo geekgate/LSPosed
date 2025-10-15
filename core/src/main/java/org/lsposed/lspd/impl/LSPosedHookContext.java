@@ -21,7 +21,7 @@ public class LSPosedHookContext implements Pre.Context, Post.Context {
     public Throwable throwable;
 
     public LSPosedHookContext() {}
-    public LSPosedHookContext(XC_MethodHook.MethodHookParam<?> param) {
+    public LSPosedHookContext(@NonNull XC_MethodHook.MethodHookParam<?> param) {
         this.target = (Executable) param.method;
         this.thisObject = param.thisObject;
         this.args = param.args;

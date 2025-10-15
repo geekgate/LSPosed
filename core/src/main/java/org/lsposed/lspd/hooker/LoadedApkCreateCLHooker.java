@@ -50,7 +50,6 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.Post;
-import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedModuleInterface;
 
 @SuppressLint("BlockedPrivateApi")
@@ -75,7 +74,7 @@ public class LoadedApkCreateCLHooker implements Post.Default {
         loadedApks.add(loadedApk);
     }
 
-    public void inject(Context ctx, Object returnValue, Throwable throwable) {
+    public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         LoadedApk loadedApk = (LoadedApk) ctx.getThisObject();
         // Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
         if (ctx.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
@@ -188,7 +187,7 @@ public class LoadedApkCreateCLHooker implements Post.Default {
             Utils.logI("New modules detected, hook preferences");
             XposedHelpers.findAndHookMethod("android.app.ContextImpl", lpparam.classLoader, "checkMode", int.class, new XC_MethodHook() {
                 @Override
-                protected void afterHookedMethod(MethodHookParam param) {
+                protected void afterHookedMethod(MethodHookParam<?> param) {
                     if (((int) param.args[0] & 1/*Context.MODE_WORLD_READABLE*/) != 0) {
                         param.setThrowable(null);
                     }
@@ -196,7 +195,7 @@ public class LoadedApkCreateCLHooker implements Post.Default {
             });
             XposedHelpers.findAndHookMethod("android.app.ContextImpl", lpparam.classLoader, "getPreferencesDir", new XC_MethodReplacement() {
                 @Override
-                protected Object replaceHookedMethod(MethodHookParam param) {
+                protected Object replaceHookedMethod(MethodHookParam<?> param) {
                     return new File(serviceClient.getPrefsPath(lpparam.packageName));
                 }
             });

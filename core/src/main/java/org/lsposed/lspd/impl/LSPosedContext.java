@@ -173,63 +173,63 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @Override
-    public <T extends Pre.Context> Handler<Method> hook(@NonNull Method origin, @NonNull Pre<T> injector) {
+    public <T extends Pre.Context> Handler<Method> hookMethod(@NonNull Method origin, @NonNull Pre<T> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <C extends Post.Context> Handler<Method> hook(@NonNull Method origin, @NonNull Post<C> injector) {
+    public <C extends Post.Context> Handler<Method> hookMethod(@NonNull Method origin, @NonNull Post<C> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <C extends Pre.Context, D extends Post.Context> Handler<Method> hook(@NonNull Method origin, @NonNull Hook<C, D> injector) {
+    public <C extends Pre.Context, D extends Post.Context> Handler<Method> hookMethod(@NonNull Method origin, @NonNull Hook<C, D> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
 
     @Override
-    public <C extends Pre.Context> Handler<Method> hook(@NonNull Method origin, int priority, @NonNull Pre<C> injector) {
+    public <C extends Pre.Context> Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Pre<C> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <C extends Post.Context> Handler<Method> hook(@NonNull Method origin, int priority, @NonNull Post<C> injector) {
+    public <C extends Post.Context> Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Post<C> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <C extends Pre.Context, D extends Post.Context> Handler<Method> hook(@NonNull Method origin, int priority, @NonNull Hook<C, D> injector) {
+    public <C extends Pre.Context, D extends Post.Context> Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Hook<C, D> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <T, C extends Pre.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Pre<C> injector) {
+    public <T, C extends Pre.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Pre<C> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <T, C extends Post.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Post<C> injector) {
+    public <T, C extends Post.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Post<C> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <T, C extends Pre.Context, D extends Post.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Hook<C, D> injector) {
+    public <T, C extends Pre.Context, D extends Post.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Hook<C, D> injector) {
         return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
     }
 
     @Override
-    public <T, C extends Pre.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Pre<C> injector) {
+    public <T, C extends Pre.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Pre<C> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <T, C extends Post.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Post<C> injector) {
+    public <T, C extends Post.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Post<C> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public <T, C extends Pre.Context, D extends Post.Context> Handler<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Hook<C, D> injector) {
+    public <T, C extends Pre.Context, D extends Post.Context> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Hook<C, D> injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 

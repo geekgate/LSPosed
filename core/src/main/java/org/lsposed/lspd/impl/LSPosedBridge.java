@@ -15,8 +15,10 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import io.github.libxposed.api.Handler;
 import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.Post;
 import io.github.libxposed.api.Pre;
+import io.github.libxposed.api.Stateful;
 import io.github.libxposed.api.errors.HookFailedError;
 
 public class LSPosedBridge {
@@ -266,10 +268,15 @@ public class LSPosedBridge {
             int beforeIdx;
 
             for (beforeIdx = 0; beforeIdx < legacySnapshot.length; beforeIdx++) {
+                var cb = (XC_MethodHook) legacySnapshot[beforeIdx];
+                if (cb instanceof Stateful x && !x.isReady()) {
+                    continue;
+                }
                 try {
-                    var cb = (XC_MethodHook) legacySnapshot[beforeIdx];
-                    if (cb == null) {
-                        continue;
+                    Injector.Lifecycle lc = null;
+                    if (cb instanceof Injector.Lifecycle x) {
+                        lc = x;
+                        x.ready(); // !!! READY: Called when the hook is ready.
                     }
                     if (cb instanceof HookCallback<?, ?> x) {
                         x.inject(context, context.args);
@@ -280,7 +287,11 @@ public class LSPosedBridge {
                         cb.callBeforeHookedMethod(param);
                         context.update(param);
                     }
+                    if (lc != null) {
+                        lc.enter(); // !!! ENTER: Called when the hook is pre-injected.
+                    }
                 } catch (Throwable t) {
+                    XposedBridge.log("throw error while Pre.inject(...)");
                     XposedBridge.log(t);
 
                     // reset result (ignoring what the unexpectedly exiting callback did)
@@ -310,11 +321,11 @@ public class LSPosedBridge {
             for (int afterIdx = beforeIdx - 1; afterIdx >= 0; afterIdx--) {
                 Object lastResult = context.result;
                 Throwable lastThrowable = context.throwable;
+                var cb = (XC_MethodHook) legacySnapshot[afterIdx];
+                if (cb instanceof Stateful x && !x.isReady()) {
+                    continue;
+                }
                 try {
-                    var cb = (XC_MethodHook) legacySnapshot[afterIdx];
-                    if (cb == null) {
-                        continue;
-                    }
                     if (cb instanceof HookCallback<?, ?> x) {
                         x.inject(context, context.result, context.throwable);
                     } else if (cb instanceof PostCallback<?> x) {
@@ -325,6 +336,7 @@ public class LSPosedBridge {
                         context.update(param);
                     }
                 } catch (Throwable t) {
+                    XposedBridge.log("throw error while Post.inject(...)");
                     XposedBridge.log(t);
 
                     // reset to last result (ignoring what the unexpectedly exiting callback did)
@@ -332,6 +344,17 @@ public class LSPosedBridge {
                         context.setResult(lastResult);
                     } else {
                         context.setThrowable(lastThrowable);
+                    }
+                }
+            }
+
+            for (Object obj : legacySnapshot) {
+                if (obj instanceof Injector.Lifecycle x) {
+                    try {
+                        x.done(); // !!! DONE: Called when the hook is completed.
+                    } catch (Throwable t) {
+                        XposedBridge.log("throw error while Lifecycle.done()");
+                        XposedBridge.log(t);
                     }
                 }
             }
@@ -349,94 +372,6 @@ public class LSPosedBridge {
             }
         }
     }
-
-//
-//    public static void dummyCallback() {
-//    }
-//
-//    private static boolean isBeforeInvocation(Method method) {
-//        var ps = method.getParameterTypes();
-//        return ps.length == 1 && ps[0]==XposedInterface.BeforeHookCallback.class;
-//    }
-//
-//    private static boolean isAfterInvocation(Method method) {
-//        var ps = method.getParameterTypes();
-//        return ps.length > 0 && ps[0]==XposedInterface.AfterHookCallback.class;
-//    }
-//    @NonNull
-//    public static <T extends Executable> Handler<T>
-//    hook(T hookMethod, int priority, Class<? extends XposedInterface.Hooker> hooker) {
-//        if (Modifier.isAbstract(hookMethod.getModifiers())) {
-//            throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
-//        } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
-//            throw new IllegalArgumentException("Do not allow hooking inner methods");
-//        } else if (hookMethod.getDeclaringClass() == Method.class && hookMethod.getName().equals("invoke")) {
-//            throw new IllegalArgumentException("Cannot hook Method.invoke");
-//        } else if (hooker == null) {
-//            throw new IllegalArgumentException("hooker should not be null!");
-//        }
-//
-//        Method beforeInvocation = null, afterInvocation = null;
-//
-//        for (var method : hooker.getDeclaredMethods()) {
-//            var m = method.getModifiers();
-//
-//            if (Modifier.isPublic(m) && Modifier.isStatic(m)) {
-//                if (isBeforeInvocation( method )) {
-//                    if (beforeInvocation != null) {
-//                        throw new IllegalArgumentException("More than one method with before invocation");
-//                    }
-//                    beforeInvocation = method;
-//                    continue;
-//                }
-//                if (isAfterInvocation( method )) {
-//                    if (afterInvocation != null) {
-//                        throw new IllegalArgumentException("More than one method with after invocation");
-//                    }
-//                    afterInvocation = method;
-//                    continue;
-//                }
-//            }
-//
-//            Log.i(TAG, method.toString());
-//        }
-//
-//        if (beforeInvocation == null && afterInvocation == null) {
-//            throw new IllegalArgumentException("before/after invocation undefined: " + hooker.getCanonicalName() );
-//        }
-//        try {
-//            if (beforeInvocation == null) {
-//                beforeInvocation = LSPosedBridge.class.getMethod("dummyCallback");
-//            } else if (afterInvocation == null) {
-//                afterInvocation = LSPosedBridge.class.getMethod("dummyCallback");
-//            } else {
-//                var ret = beforeInvocation.getReturnType();
-//                var params = afterInvocation.getParameterTypes();
-//                if (ret != void.class && params.length == 2 && !ret.equals(params[1])) {
-//                    throw new IllegalArgumentException("BeforeInvocation and AfterInvocation method format is invalid");
-//                }
-//            }
-//        } catch (NoSuchMethodException e) {
-//            throw new HookFailedError(e);
-//        }
-//
-//        var callback = new LSPosedBridge.HookerCallback(beforeInvocation, afterInvocation);
-//        if (HookBridge.hookMethod(true, hookMethod, LSPosedBridge.NativeHooker.class, priority, callback)) {
-//            return new Handler<T>() {
-//                @NonNull
-//                @Override
-//                public T getOrigin() {
-//                    return hookMethod;
-//                }
-//
-//                @Override
-//                public void cancel() {
-//                    HookBridge.unhookMethod(true, hookMethod, callback);
-//                }
-//            };
-//        }
-//        throw new HookFailedError("Cannot hook " + hookMethod);
-//    }
 
     private sealed static class Callback extends XC_MethodHook {
 
@@ -473,7 +408,7 @@ public class LSPosedBridge {
         }
 
         @Override
-        protected void beforeHookedMethod(MethodHookParam<?> param) throws Throwable {
+        protected void beforeHookedMethod(MethodHookParam<?> param) {
             assign(param);
             injector.inject(injector.wrap(context), context.args);
             update(param);
@@ -495,7 +430,7 @@ public class LSPosedBridge {
         }
 
         @Override
-        protected void afterHookedMethod(MethodHookParam<?> param) throws Throwable {
+        protected void afterHookedMethod(MethodHookParam<?> param) {
             assign(param);
             injector.inject(injector.wrap(context), context.result, context.throwable);
             update(param);
@@ -565,6 +500,20 @@ public class LSPosedBridge {
                 public void cancel() {
                     HookBridge.unhookMethod(true, hookMethod, callback);
                 }
+
+                @Override
+                public void enable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Ready);
+                    }
+                }
+
+                @Override
+                public void disable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Undefined);
+                    }
+                }
             };
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
@@ -596,6 +545,20 @@ public class LSPosedBridge {
                 public void cancel() {
                     HookBridge.unhookMethod(true, hookMethod, callback);
                 }
+
+                @Override
+                public void enable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Ready);
+                    }
+                }
+
+                @Override
+                public void disable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Undefined);
+                    }
+                }
             };
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
@@ -626,6 +589,20 @@ public class LSPosedBridge {
                 @Override
                 public void cancel() {
                     HookBridge.unhookMethod(true, hookMethod, callback);
+                }
+
+                @Override
+                public void enable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Ready);
+                    }
+                }
+
+                @Override
+                public void disable() {
+                    if (injector instanceof Stateful x) {
+                        x.setState(Stateful.State.Undefined);
+                    }
                 }
             };
         }
