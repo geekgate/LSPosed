@@ -8,7 +8,7 @@ import org.lsposed.lspd.impl.LSPosedBridge;
 
 import io.github.libxposed.api.Pre;
 
-public class CrashDumpHooker implements Pre.Default {
+public class CrashDumpHooker implements Pre {
 
     public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         // Utils.logI("[Injected] CrashDumpHooker::beforeHookedMethod");

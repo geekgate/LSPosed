@@ -117,4 +117,9 @@ public class LSPosedHookContext implements Pre.Context, Post.Context {
         return this.thisObject;
     }
 
+    @Nullable @Override
+    public Object getThat() {
+        return this.thisObject;
+    }
+
 }

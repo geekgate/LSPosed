@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.github.libxposed.api.Handler;
+import io.github.libxposed.api.Injector.Handler;
 import io.github.libxposed.api.Hook;
 import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.Post;
@@ -18,7 +18,7 @@ import io.github.libxposed.api.errors.HookFailedError;
 public class LSPosedHelper {
 
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Handler<Method> hookMethod(Pre<?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
+    public static Handler<Method> hookMethod(Pre injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
@@ -27,7 +27,7 @@ public class LSPosedHelper {
         }
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Handler<Method> hookMethod(Post<?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
+    public static Handler<Method> hookMethod(Post injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
@@ -36,7 +36,7 @@ public class LSPosedHelper {
         }
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Handler<Method> hookMethod(Hook<?, ?> injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
+    public static Handler<Method> hookMethod(Hook injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
             return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
@@ -45,7 +45,7 @@ public class LSPosedHelper {
         }
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Pre<?> injector) {
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Pre injector) {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -55,7 +55,7 @@ public class LSPosedHelper {
         return unhooks;
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Post<?> injector) {
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Post injector) {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -65,7 +65,7 @@ public class LSPosedHelper {
         return unhooks;
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Hook<?, ?> injector) {
+    public static Set<Handler<Method>> hookAllMethods(@NonNull Class<?> clazz, String methodName, Hook injector) {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -75,7 +75,7 @@ public class LSPosedHelper {
         return unhooks;
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static <T> Handler<Constructor<T>> hookConstructor(Pre<?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    public static <T> Handler<Constructor<T>> hookConstructor(Pre injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
@@ -84,7 +84,7 @@ public class LSPosedHelper {
         }
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static <T> Handler<Constructor<T>> hookConstructor(Post<?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    public static <T> Handler<Constructor<T>> hookConstructor(Post injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
@@ -93,7 +93,7 @@ public class LSPosedHelper {
         }
     }
     @NonNull @SuppressWarnings("UnusedReturnValue")
-    public static <T> Handler<Constructor<T>> hookConstructor(Hook<?, ?> injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
+    public static <T> Handler<Constructor<T>> hookConstructor(Hook injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
             return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);

@@ -34,7 +34,7 @@ import io.github.libxposed.api.Post;
 
 // when a package is loaded for an existing process, trigger the callbacks as well
 
-public class LoadedApkCtorHooker implements Post.Default {
+public class LoadedApkCtorHooker implements Post {
 
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         Hookers.logD("LoadedApk#<init> starts");

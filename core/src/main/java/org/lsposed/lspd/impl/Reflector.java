@@ -24,9 +24,9 @@ public final class Reflector {
     /**
      * Create a Reflector for a method.
      * @param cls Class to reflect
-     * @param method  Name of method to match
+     * @param method  Name of method to match, null or empty string for a constructor
      * @param params  Parameters to match method
-     * @throws NoSuchMethodException if no suitable method was found.
+     * @throws NoSuchMethodException if no suitable method/constructor was found.
      */
     public Reflector(@NonNull Class<?> cls, String method, Class<?> ... params) throws NoSuchMethodException {
         this( isConstructor( method ) ? cls.getDeclaredConstructor( params ) : cls.getDeclaredMethod( method,  params ));
@@ -57,32 +57,33 @@ public final class Reflector {
         }
         return new Reflector(members.toArray(new Executable[0]));
     }
-    public <C extends Pre.Context> void inject(Pre<C> injector, int priority) {
+
+    public void inject(int priority, Pre injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public <C extends Post.Context> void inject(Post<C> injector, int priority) {
+    public void inject(int priority, Post injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public <C extends Pre.Context, D extends Post.Context> void inject(Hook<C, D> injector, int priority) {
+    public void inject(int priority, Hook injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, priority, injector);
         }
     }
-    public <C extends Pre.Context, D extends Post.Context> void inject(Hook<C, D> injector) {
+    public void inject(Hook injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
         }
     }
-    public <C extends Pre.Context> void inject(Pre<C> injector) {
+    public void inject(Pre injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
         }
     }
-    public <C extends Post.Context> void inject(Post<C> injector) {
+    public void inject(Post injector) {
         for (var member : members) {
             LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
         }

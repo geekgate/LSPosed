@@ -53,7 +53,7 @@ import io.github.libxposed.api.Post;
 import io.github.libxposed.api.XposedModuleInterface;
 
 @SuppressLint("BlockedPrivateApi")
-public class LoadedApkCreateCLHooker implements Post.Default {
+public class LoadedApkCreateCLHooker implements Post {
     private final static Field defaultClassLoaderField;
 
     private final static Set<LoadedApk> loadedApks = ConcurrentHashMap.newKeySet();
@@ -126,6 +126,7 @@ public class LoadedApkCreateCLHooker implements Post.Default {
             Hookers.logD("Call handleLoadedPackage: packageName=" + lpparam.packageName + " processName=" + lpparam.processName + " isFirstPackage=" + isFirstPackage + " classLoader=" + lpparam.classLoader + " appInfo=" + lpparam.appInfo);
             XC_LoadPackage.callAll(lpparam);
 
+            // call onPackageLoaded
             LSPosedContext.callOnPackageLoaded(new XposedModuleInterface.PackageLoadedParam() {
                 @NonNull
                 @Override
@@ -158,6 +159,10 @@ public class LoadedApkCreateCLHooker implements Post.Default {
                 @Override
                 public boolean isFirstPackage() {
                     return isFirstPackage;
+                }
+
+                public android.content.Context getContext() {
+                    return ActivityThread.currentApplication();
                 }
             });
         } catch (Throwable t) {

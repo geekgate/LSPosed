@@ -9,14 +9,14 @@
 -keepclassmembers class org.lsposed.lspd.impl.LSPosedContext {
     public <methods>;
 }
--keepclassmembers class org.lsposed.lspd.impl.LSPosedHookCallback {
+-keepclassmembers class org.lsposed.lspd.impl.LSPosedHookContext {
     public <methods>;
 }
--keep,allowoptimization,allowobfuscation @io.github.libxposed.api.annotations.* class * {
-    @io.github.libxposed.api.annotations.BeforeInvocation <methods>;
-    @io.github.libxposed.api.annotations.AfterInvocation <methods>;
-}
 -keepclassmembers class org.lsposed.lspd.impl.LSPosedBridge$NativeHooker {
+    <init>(java.lang.reflect.Executable);
+    callback(...);
+}
+-keepclassmembers class org.lsposed.lspd.impl.LSPosedBridge$NativeInjector {
     <init>(java.lang.reflect.Executable);
     callback(...);
 }

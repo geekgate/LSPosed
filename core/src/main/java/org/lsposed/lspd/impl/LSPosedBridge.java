@@ -10,12 +10,12 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.concurrent.atomic.AtomicReference;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
-import io.github.libxposed.api.Handler;
+import io.github.libxposed.api.Injector.Handler;
 import io.github.libxposed.api.Hook;
-import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.Post;
 import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.Stateful;
@@ -23,7 +23,7 @@ import io.github.libxposed.api.errors.HookFailedError;
 
 public class LSPosedBridge {
 
-    private static final String TAG = "LSPosedPro-Bridge";
+    private static final String TAG = "LSPosedPro/Bridge";
 
     private static final String castException = "Return value's type from hook callback does not match the hooked method";
 
@@ -273,22 +273,14 @@ public class LSPosedBridge {
                     continue;
                 }
                 try {
-                    Injector.Lifecycle lc = null;
-                    if (cb instanceof Injector.Lifecycle x) {
-                        lc = x;
-                        x.ready(); // !!! READY: Called when the hook is ready.
-                    }
-                    if (cb instanceof HookCallback<?, ?> x) {
+                    if (cb instanceof HookCallback x) {
                         x.inject(context, context.args);
-                    } else if (cb instanceof PreCallback<?> x) {
+                    } else if (cb instanceof PreCallback x) {
                         x.inject(context, context.args);
                     } else {
                         var param = context.export();
                         cb.callBeforeHookedMethod(param);
                         context.update(param);
-                    }
-                    if (lc != null) {
-                        lc.enter(); // !!! ENTER: Called when the hook is pre-injected.
                     }
                 } catch (Throwable t) {
                     XposedBridge.log("throw error while Pre.inject(...)");
@@ -326,9 +318,9 @@ public class LSPosedBridge {
                     continue;
                 }
                 try {
-                    if (cb instanceof HookCallback<?, ?> x) {
+                    if (cb instanceof HookCallback x) {
                         x.inject(context, context.result, context.throwable);
-                    } else if (cb instanceof PostCallback<?> x) {
+                    } else if (cb instanceof PostCallback x) {
                         x.inject(context, context.result, context.throwable);
                     } else {
                         var param = context.export();
@@ -348,14 +340,13 @@ public class LSPosedBridge {
                 }
             }
 
-            for (Object obj : legacySnapshot) {
-                if (obj instanceof Injector.Lifecycle x) {
-                    try {
-                        x.done(); // !!! DONE: Called when the hook is completed.
-                    } catch (Throwable t) {
-                        XposedBridge.log("throw error while Lifecycle.done()");
-                        XposedBridge.log(t);
-                    }
+            for (int afterIdx = legacySnapshot.length - 1; afterIdx >= 0; afterIdx--) {
+                var cb = (XC_MethodHook) legacySnapshot[afterIdx];
+                if (cb instanceof Stateful x && !x.isReady()) {
+                    continue;
+                }
+                if (cb instanceof Callback x) {
+                    x.done(context);
                 }
             }
 
@@ -363,17 +354,18 @@ public class LSPosedBridge {
             var t = context.throwable;
             if (t != null) {
                 throw t;
-            } else {
-                var result = context.result;
-                if (returnType != null && !returnType.isPrimitive() && !HookBridge.instanceOf(result, returnType)) {
-                    throw new ClassCastException(castException);
-                }
-                return result;
             }
+
+            var result = context.result;
+            if (returnType != null && !returnType.isPrimitive() && !HookBridge.instanceOf(result, returnType)) {
+                throw new ClassCastException(castException);
+            }
+            return result;
         }
     }
 
-    private sealed static class Callback extends XC_MethodHook {
+
+    private abstract sealed static class Callback extends XC_MethodHook implements Stateful.Default {
 
         protected final LSPosedHookContext context = new LSPosedHookContext();
 
@@ -396,13 +388,29 @@ public class LSPosedBridge {
             param.throwable = context.throwable;
             param.returnEarly = context.isSkipped;
         }
+
+        public abstract void done(LSPosedHookContext context);
+
+        // 添加状态
+
+        private final AtomicReference<Stateful.State> state = new AtomicReference<>(Stateful.State.Ready);
+
+        @Override
+        public Stateful.State getState() {
+            return state.get();
+        }
+
+        @Override
+        public void setState(Stateful.State state) {
+            this.state.set( state );
+        }
     }
 
-    private static final class PreCallback<C extends Pre.Context> extends Callback {
+    private static final class PreCallback extends Callback {
 
-        private final Pre<C> injector;
+        private final Pre injector;
 
-        PreCallback(Pre<C> injector, int priority) {
+        PreCallback(Pre injector, int priority) {
             super(priority);
             this.injector = injector;
         }
@@ -410,21 +418,25 @@ public class LSPosedBridge {
         @Override
         protected void beforeHookedMethod(MethodHookParam<?> param) {
             assign(param);
-            injector.inject(injector.wrap(context), context.args);
+            injector.inject(context, context.args);
             update(param);
         }
 
         public void inject(LSPosedHookContext context, Object[] args) {
-            injector.inject(injector.wrap(context), args);
+            injector.inject(context, args);
+        }
+
+        public void done(LSPosedHookContext context) {
+            injector.done(context);
         }
     }
 
-    private static final class PostCallback<C extends Post.Context> extends Callback {
+    private static final class PostCallback extends Callback {
 
-        private final Post<C> injector;
+        private final Post injector;
         private final LSPosedHookContext context = new LSPosedHookContext();
 
-        PostCallback(Post<C> injector, int priority) {
+        PostCallback(Post injector, int priority) {
             super(priority);
             this.injector = injector;
         }
@@ -432,20 +444,24 @@ public class LSPosedBridge {
         @Override
         protected void afterHookedMethod(MethodHookParam<?> param) {
             assign(param);
-            injector.inject(injector.wrap(context), context.result, context.throwable);
+            injector.inject(context, context.result, context.throwable);
             update(param);
         }
 
         public void inject(LSPosedHookContext context, Object result, Throwable throwable) {
-            injector.inject(injector.wrap(context), result, throwable);
+            injector.inject(context, result, throwable);
+        }
+
+        public void done(LSPosedHookContext context) {
+            injector.done(context);
         }
     }
 
-    private static final class HookCallback<C extends Pre.Context, D extends Post.Context> extends Callback {
+    private static final class HookCallback extends Callback {
 
-        private final Hook<C, D> injector;
+        private final Hook injector;
 
-        HookCallback(Hook<C, D> injector, int priority) {
+        HookCallback(Hook injector, int priority) {
             super(priority);
             this.injector = injector;
         }
@@ -453,29 +469,65 @@ public class LSPosedBridge {
         @Override
         protected void beforeHookedMethod(MethodHookParam<?> param) {
             assign(param);
-            injector.inject(injector.wrap((Pre.Context) context ), context.args);
+            injector.inject(context, context.args);
             update(param);
         }
 
         @Override
         protected void afterHookedMethod(MethodHookParam<?> param) {
             assign(param);
-            injector.inject(injector.wrap((Post.Context) context ), context.result, context.throwable);
+            injector.inject(context, context.result, context.throwable);
             update(param);
         }
 
         public void inject(LSPosedHookContext context, Object[] args) {
-            injector.inject(injector.wrap((Pre.Context) context ), args);
+            injector.inject(context, args);
         }
 
         public void inject(LSPosedHookContext context, Object result, Throwable throwable) {
-            injector.inject(injector.wrap((Post.Context) context ), result, throwable);
+            injector.inject(context, result, throwable);
+        }
+
+        public void done(LSPosedHookContext context) {
+            injector.done(context);
+        }
+    }
+
+    private static class StateHandler<T extends Executable> implements Handler<T> {
+
+        private final AtomicReference<Stateful.State> state = new AtomicReference<>(Stateful.State.Ready);
+        private final T origin;
+        private final Callback callback;
+
+        public StateHandler(T origin, Callback callback) {
+            this.origin = origin;
+            this.callback = callback;
+        }
+
+        @NonNull
+        @Override
+        public T getOrigin() {
+            return origin;
+        }
+
+        @Override
+        public void cancel() {
+            HookBridge.unhookMethod(false, origin, callback);
+        }
+
+        @Override
+        public Stateful.State getState() {
+            return state.get();
+        }
+
+        @Override
+        public void setState(Stateful.State state) {
+            this.state.set( state );
         }
     }
 
     @NonNull
-    public static <T extends Executable, C extends Pre.Context> Handler<T>
-    hook(@NonNull T hookMethod, int priority, Pre<C> injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Pre injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -486,41 +538,15 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new PreCallback<>(injector, priority);
+        var callback = new PreCallback(injector, priority);
 
         if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
-            return new Handler<>() {
-                @NonNull
-                @Override
-                public T getOrigin() {
-                    return hookMethod;
-                }
-
-                @Override
-                public void cancel() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
-                }
-
-                @Override
-                public void enable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Ready);
-                    }
-                }
-
-                @Override
-                public void disable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Undefined);
-                    }
-                }
-            };
+            return new StateHandler<>(hookMethod,  callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
     @NonNull
-    public static <T extends Executable, C extends Post.Context> Handler<T>
-    hook(@NonNull T hookMethod, int priority, Post<C> injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Post injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -531,41 +557,15 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new PostCallback<>(injector, priority);
+        var callback = new PostCallback(injector, priority);
 
         if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
-            return new Handler<>() {
-                @NonNull
-                @Override
-                public T getOrigin() {
-                    return hookMethod;
-                }
-
-                @Override
-                public void cancel() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
-                }
-
-                @Override
-                public void enable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Ready);
-                    }
-                }
-
-                @Override
-                public void disable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Undefined);
-                    }
-                }
-            };
+            return new StateHandler<>(hookMethod, callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
     @NonNull
-    public static <T extends Executable, C extends Pre.Context, D extends Post.Context> Handler<T>
-    hook(@NonNull T hookMethod, int priority, Hook<C, D> injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Hook injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -576,35 +576,10 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new HookCallback<>(injector, priority);
+        var callback = new HookCallback(injector, priority);
 
         if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
-            return new Handler<>() {
-                @NonNull
-                @Override
-                public T getOrigin() {
-                    return hookMethod;
-                }
-
-                @Override
-                public void cancel() {
-                    HookBridge.unhookMethod(true, hookMethod, callback);
-                }
-
-                @Override
-                public void enable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Ready);
-                    }
-                }
-
-                @Override
-                public void disable() {
-                    if (injector instanceof Stateful x) {
-                        x.setState(Stateful.State.Undefined);
-                    }
-                }
-            };
+            return new StateHandler<>(hookMethod, callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }

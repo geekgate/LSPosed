@@ -32,7 +32,7 @@ import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import io.github.libxposed.api.Pre;
 
-public class StartBootstrapServicesHooker implements Pre.Default {
+public class StartBootstrapServicesHooker implements Pre {
 
     public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         logD("SystemServer#startBootstrapServices() starts");
