@@ -30,18 +30,17 @@ import org.lsposed.lspd.util.Hookers;
 
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.XposedInit;
-import io.github.libxposed.api.Injector;
-import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.Post;
 
 // when a package is loaded for an existing process, trigger the callbacks as well
 
-public class LoadedApkCtorHooker implements Injector.PostInjector {
+public class LoadedApkCtorHooker implements Post {
 
-    public void inject(@NonNull XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
+    public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         Hookers.logD("LoadedApk#<init> starts");
         // Utils.logI("[Injected] LoadedApkCtorHooker::afterHookedMethod");
         try {
-            LoadedApk loadedApk = (LoadedApk) callback.getThisObject();
+            LoadedApk loadedApk = (LoadedApk) ctx.getThisObject();
             assert loadedApk != null;
             String packageName = loadedApk.getPackageName();
             Object mAppDir = XposedHelpers.getObjectField(loadedApk, "mAppDir");

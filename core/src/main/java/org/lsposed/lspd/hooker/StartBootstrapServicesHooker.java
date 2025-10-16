@@ -30,12 +30,11 @@ import org.lsposed.lspd.util.Hookers;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
-import io.github.libxposed.api.Injector;
-import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.Pre;
 
-public class StartBootstrapServicesHooker implements Injector.PreInjector {
+public class StartBootstrapServicesHooker implements Pre {
 
-    public void inject(@NonNull XposedInterface.BeforeHookCallback callback, @NonNull Object[] args) {
+    public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         logD("SystemServer#startBootstrapServices() starts");
         // Utils.logI("[Injected] StartBootstrapServicesHooker::beforeHookedMethod");
         try {

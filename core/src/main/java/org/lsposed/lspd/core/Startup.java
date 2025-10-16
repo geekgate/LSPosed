@@ -72,7 +72,7 @@ public class Startup {
     @Contract("_, _ -> new")
     public static Reflector constructor(Class<?> cls, Class<?> ... params) {
         try {
-            return new Reflector(cls, params);
+            return Reflector.constructor(cls, params);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }

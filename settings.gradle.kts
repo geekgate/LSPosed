@@ -2,6 +2,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         gradlePluginPortal()
         google()
         mavenCentral()
@@ -11,6 +12,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google()
         mavenCentral()
         mavenLocal {

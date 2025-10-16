@@ -7,15 +7,14 @@ import androidx.annotation.NonNull;
 import org.lsposed.lspd.impl.LSPosedBridge;
 import org.lsposed.lspd.nativebridge.HookBridge;
 
-import io.github.libxposed.api.Injector;
-import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.Post;
 
-public class OpenDexFileHooker implements Injector.PostInjector {
+public class OpenDexFileHooker implements Post {
 
-    public void inject(@NonNull XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
+    public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         // Utils.logI("[Injected] OpenDexFileHooker::afterHookedMethod");
         ClassLoader classLoader = null;
-        for (var arg : callback.getArgs()) {
+        for (var arg : ctx.getArgs()) {
             if (arg instanceof ClassLoader) {
                 classLoader = (ClassLoader) arg;
             }
@@ -25,7 +24,7 @@ public class OpenDexFileHooker implements Injector.PostInjector {
         }
         while (classLoader != null) {
             if (classLoader == LSPosedBridge.class.getClassLoader()) {
-                HookBridge.setTrusted(callback.getResult());
+                HookBridge.setTrusted(returnValue);
                 return;
             } else {
                 classLoader = classLoader.getParent();

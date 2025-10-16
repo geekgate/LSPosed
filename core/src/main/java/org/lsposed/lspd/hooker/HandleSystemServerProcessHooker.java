@@ -28,17 +28,16 @@ import org.lsposed.lspd.deopt.PrebuiltMethodsDeopter;
 import org.lsposed.lspd.impl.LSPosedHelper;
 import org.lsposed.lspd.util.Hookers;
 
-import io.github.libxposed.api.Injector;
-import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.Post;
 
 // system_server initialization
 
-public class HandleSystemServerProcessHooker implements Injector.PostInjector {
+public class HandleSystemServerProcessHooker implements Post {
 
     public static volatile ClassLoader systemServerCL;
 
     @SuppressLint("PrivateApi")
-    public void inject(@NonNull XposedInterface.AfterHookCallback callback, Object returnValue, Throwable throwable) {
+    public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
         // Utils.logI("[Injected] HandleSystemServerProcessHooker::afterHookedMethod");
         try {

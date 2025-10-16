@@ -14,13 +14,13 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import org.lsposed.lspd.util.ConfigManager;
 import org.lsposed.lspd.core.BuildConfig;
 import org.lsposed.lspd.impl.utils.LSPosedDexParser;
 import org.lsposed.lspd.models.Module;
 import org.lsposed.lspd.nativebridge.HookBridge;
 import org.lsposed.lspd.nativebridge.NativeAPI;
 import org.lsposed.lspd.service.ILSPInjectedModuleService;
+import org.lsposed.lspd.util.ConfigManager;
 import org.lsposed.lspd.util.LspModuleClassLoader;
 
 import java.io.File;
@@ -38,18 +38,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Hook;
+import io.github.libxposed.api.Injector.Handler;
+import io.github.libxposed.api.Post;
+import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 import io.github.libxposed.api.errors.XposedFrameworkError;
 import io.github.libxposed.api.utils.DexParser;
 
-
-@SuppressLint("NewApi")
+@SuppressLint("NewApi") @SuppressWarnings("unused")
 public class LSPosedContext implements XposedInterface {
 
-    private static final String TAG = "LSPosedProContext";
+    private static final String TAG = "LSPosedPro/Context";
 
     public static boolean isSystemServer;
     public static String appDir;
@@ -93,8 +95,8 @@ public class LSPosedContext implements XposedInterface {
         try {
             Log.d(TAG, "Loading module " + module.packageName);
             var sb = new StringBuilder();
-            var abis = Process.is64Bit() ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
-            for (String abi : abis) {
+            var ABIs = Process.is64Bit() ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
+            for (String abi : ABIs) {
                 sb.append(module.apkPath).append("!/lib/").append(abi).append(File.pathSeparator);
             }
             var librarySearchPath = sb.toString();
@@ -106,6 +108,7 @@ public class LSPosedContext implements XposedInterface {
                 Log.e(TAG, "  This may cause strange issues and must be fixed by the module developer.");
                 return false;
             }
+            // 创建 LSPosed 模块上下文
             var ctx = new LSPosedContext(module.packageName, module.applicationInfo, module.service);
             for (var entry : module.file.moduleClassNames) {
                 var moduleClass = mcl.loadClass(entry);
@@ -115,6 +118,7 @@ public class LSPosedContext implements XposedInterface {
                     continue;
                 }
                 try {
+                    // 创建 LSPosed 模块实例
                     var moduleEntry = moduleClass.getConstructor(XposedInterface.class, XposedModuleInterface.ModuleLoadedParam.class);
                     var moduleContext = (XposedModule) moduleEntry.newInstance(ctx, new XposedModuleInterface.ModuleLoadedParam() {
                         @Override
@@ -168,104 +172,30 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
+
     @Override
-    @NonNull
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, hooker);
+    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Pre injector) {
+        return LSPosedBridge.hook(origin, priority, injector);
     }
-
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.PreInjector injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
+    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Post injector) {
+        return LSPosedBridge.hook(origin, priority, injector);
     }
-
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.PostInjector injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
-    }
-
-    @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, @NonNull Injector.Hook injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hookClassInitializer(@NonNull Class<T> origin, @NonNull Class<? extends Hooker> hooker) {
-
-        return null;
-
-    }
-
-    @NonNull
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hookClassInitializer(@NonNull Class<T> origin, int priority, @NonNull Class<? extends Hooker> hooker) {
-
-        // TODO 未实现
-
-        return null;
-    }
-
-    @Override
-    @NonNull
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.hook(origin, priority, hooker);
-    }
-
-    @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.PreInjector injector) {
+    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.PostInjector injector) {
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Pre injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
-
     @Override
-    public MethodUnhooker<Method> hook(@NonNull Method origin, int priority, @NonNull Injector.Hook injector) {
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Post injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
-
     @Override
-    @NonNull
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, hooker);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.PreInjector injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.PostInjector injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, @NonNull Injector.Hook injector) {
-        return LSPosedBridge.hook(origin, PRIORITY_DEFAULT, injector);
-    }
-
-    @Override
-    @NonNull
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Class<? extends Hooker> hooker) {
-        return LSPosedBridge.hook(origin, priority, hooker);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.PreInjector injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.PostInjector injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
-    }
-
-    @Override
-    public <T> MethodUnhooker<Constructor<T>> hook(@NonNull Constructor<T> origin, int priority, @NonNull Injector.Hook injector) {
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Hook injector) {
         return LSPosedBridge.hook(origin, priority, injector);
     }
 
@@ -296,9 +226,7 @@ public class LSPosedContext implements XposedInterface {
 
     @Override
     public <T> void invokeOrigin(@NonNull Constructor<T> constructor, @NonNull T thisObject, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException {
-
-        // TODO 未实现
-
+        HookBridge.invokeOriginalMethod(constructor, thisObject, args);
     }
 
     private static char getTypeShorty(Class<?> type) {
@@ -335,8 +263,7 @@ public class LSPosedContext implements XposedInterface {
         return shorty;
     }
 
-    @Nullable
-    @Override
+    @Nullable @Override
     public Object invokeSpecial(@NonNull Method method, @NonNull Object thisObject, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException {
         if (Modifier.isStatic(method.getModifiers())) {
             throw new IllegalArgumentException("Cannot invoke special on static method: " + method);
@@ -346,21 +273,17 @@ public class LSPosedContext implements XposedInterface {
 
     @Override
     public <T> void invokeSpecial(@NonNull Constructor<T> constructor, @NonNull T thisObject, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException {
-
-        // TODO 未实现
-
+        HookBridge.invokeSpecialMethod(constructor, getExecutableShorty(constructor), constructor.getDeclaringClass(), thisObject, args);
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public <T> T newInstanceOrigin(@NonNull Constructor<T> constructor, Object... args) throws InvocationTargetException, IllegalAccessException, InstantiationException {
         var obj = HookBridge.allocateObject(constructor.getDeclaringClass());
         HookBridge.invokeOriginalMethod(constructor, obj, args);
         return obj;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public <T, U> U newInstanceSpecial(@NonNull Constructor<T> constructor, @NonNull Class<U> subClass, Object... args) throws InvocationTargetException, IllegalArgumentException, IllegalAccessException, InstantiationException {
         var superClass = constructor.getDeclaringClass();
         if (!superClass.isAssignableFrom(subClass)) {
@@ -386,14 +309,12 @@ public class LSPosedContext implements XposedInterface {
         return new LSPosedDexParser(dexData, includeAnnotations);
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public ApplicationInfo getApplicationInfo() {
         return mApplicationInfo;
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public SharedPreferences getRemotePreferences(@NonNull String name) {
         // if (name == null) throw new IllegalArgumentException("name must not be null");
         return mRemotePrefs.computeIfAbsent(name, n -> {
@@ -406,8 +327,7 @@ public class LSPosedContext implements XposedInterface {
         });
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public String[] listRemoteFiles() {
         try {
             return service.getRemoteFileList();
@@ -417,8 +337,7 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
-    @NonNull
-    @Override
+    @NonNull @Override
     public ParcelFileDescriptor openRemoteFile(@NonNull String name) throws FileNotFoundException {
         // if (name == null) throw new IllegalArgumentException("name must not be null");
         try {
@@ -429,7 +348,6 @@ public class LSPosedContext implements XposedInterface {
     }
 
     @NonNull
-    @Override
     public List<PackageInfo> getInstalledPackages(boolean force) throws RemoteException {
         return ConfigManager.getAppList(force);
     }
