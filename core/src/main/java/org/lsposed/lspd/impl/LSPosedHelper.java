@@ -7,9 +7,8 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.github.libxposed.api.Injector.Handler;
 import io.github.libxposed.api.Hook;
-import io.github.libxposed.api.Injector;
+import io.github.libxposed.api.Injector.Handler;
 import io.github.libxposed.api.Post;
 import io.github.libxposed.api.Pre;
 import io.github.libxposed.api.errors.HookFailedError;
@@ -21,7 +20,7 @@ public class LSPosedHelper {
     public static Handler<Method> hookMethod(Pre injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(method, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -30,7 +29,7 @@ public class LSPosedHelper {
     public static Handler<Method> hookMethod(Post injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(method, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -39,7 +38,7 @@ public class LSPosedHelper {
     public static Handler<Method> hookMethod(Hook injector, @NonNull Class<?> clazz, String methodName, Class<?>... parameterTypes) {
         try {
             var method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            return LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(method, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -49,7 +48,7 @@ public class LSPosedHelper {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
+                unhooks.add(LSPosedBridge.hook(method, injector));
             }
         }
         return unhooks;
@@ -59,7 +58,7 @@ public class LSPosedHelper {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
+                unhooks.add(LSPosedBridge.hook(method, injector));
             }
         }
         return unhooks;
@@ -69,7 +68,7 @@ public class LSPosedHelper {
         var unhooks = new HashSet<Handler<Method>>();
         for (var method : clazz.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
-                unhooks.add(LSPosedBridge.hook(method, Injector.PRIORITY_DEFAULT, injector));
+                unhooks.add(LSPosedBridge.hook(method, injector));
             }
         }
         return unhooks;
@@ -78,7 +77,7 @@ public class LSPosedHelper {
     public static <T> Handler<Constructor<T>> hookConstructor(Pre injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(constructor, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -87,7 +86,7 @@ public class LSPosedHelper {
     public static <T> Handler<Constructor<T>> hookConstructor(Post injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(constructor, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }
@@ -96,7 +95,7 @@ public class LSPosedHelper {
     public static <T> Handler<Constructor<T>> hookConstructor(Hook injector, @NonNull Class<T> clazz, Class<?>... parameterTypes) {
         try {
             var constructor = clazz.getDeclaredConstructor(parameterTypes);
-            return LSPosedBridge.hook(constructor, Injector.PRIORITY_DEFAULT, injector);
+            return LSPosedBridge.hook(constructor, injector);
         } catch (NoSuchMethodException e) {
             throw new HookFailedError(e);
         }

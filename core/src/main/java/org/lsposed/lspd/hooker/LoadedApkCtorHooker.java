@@ -39,6 +39,7 @@ public class LoadedApkCtorHooker implements Post {
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         Hookers.logD("LoadedApk#<init> starts");
         // Utils.logI("[Injected] LoadedApkCtorHooker::afterHookedMethod");
+        ctx.trace();
         try {
             LoadedApk loadedApk = (LoadedApk) ctx.getThisObject();
             assert loadedApk != null;

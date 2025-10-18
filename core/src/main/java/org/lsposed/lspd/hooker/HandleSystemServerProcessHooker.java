@@ -40,6 +40,7 @@ public class HandleSystemServerProcessHooker implements Post {
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         Hookers.logD("ZygoteInit#handleSystemServerProcess() starts");
         // Utils.logI("[Injected] HandleSystemServerProcessHooker::afterHookedMethod");
+        ctx.trace();
         try {
             // get system_server classLoader
             systemServerCL = Thread.currentThread().getContextClassLoader();

@@ -172,31 +172,30 @@ public class LSPosedContext implements XposedInterface {
         }
     }
 
+    @Override
+    public Handler<Method> hookMethod(@NonNull Method origin, @NonNull Pre injector) {
+        return LSPosedBridge.hook(origin, injector);
+    }
+    @Override
+    public Handler<Method> hookMethod(@NonNull Method origin, @NonNull Post injector) {
+        return LSPosedBridge.hook(origin, injector);
+    }
+    @Override
+    public Handler<Method> hookMethod(@NonNull Method origin, @NonNull Hook injector) {
+        return LSPosedBridge.hook(origin, injector);
+    }
 
     @Override
-    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Pre injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Pre injector) {
+        return LSPosedBridge.hook(origin, injector);
     }
     @Override
-    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Post injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Post injector) {
+        return LSPosedBridge.hook(origin, injector);
     }
     @Override
-    public Handler<Method> hookMethod(@NonNull Method origin, int priority, @NonNull Hook injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
-    }
-
-    @Override
-    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Pre injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
-    }
-    @Override
-    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Post injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
-    }
-    @Override
-    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, int priority, @NonNull Hook injector) {
-        return LSPosedBridge.hook(origin, priority, injector);
+    public <T> Handler<Constructor<T>> hookConstructor(@NonNull Constructor<T> origin, @NonNull Hook injector) {
+        return LSPosedBridge.hook(origin, injector);
     }
 
     private static boolean doDeoptimize(@NonNull Executable method) {
