@@ -77,6 +77,7 @@ public class LoadedApkCreateCLHooker implements Post {
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         LoadedApk loadedApk = (LoadedApk) ctx.getThisObject();
         // Utils.logI("[Injected] LoadedApkCreateCLHooker::afterHookedMethod");
+        ctx.trace();
         if (ctx.getArgs()[0] != null || !loadedApks.contains(loadedApk)) {
             return;
         }

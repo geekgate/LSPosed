@@ -410,8 +410,8 @@ public class LSPosedBridge {
 
         private final Pre injector;
 
-        PreCallback(Pre injector, int priority) {
-            super(priority);
+        PreCallback(@NonNull Pre injector) {
+            super(injector.getPriority());
             this.injector = injector;
         }
 
@@ -436,8 +436,8 @@ public class LSPosedBridge {
         private final Post injector;
         private final LSPosedHookContext context = new LSPosedHookContext();
 
-        PostCallback(Post injector, int priority) {
-            super(priority);
+        PostCallback(@NonNull Post injector) {
+            super(injector.getPriority());
             this.injector = injector;
         }
 
@@ -461,8 +461,8 @@ public class LSPosedBridge {
 
         private final Hook injector;
 
-        HookCallback(Hook injector, int priority) {
-            super(priority);
+        HookCallback(@NonNull Hook injector) {
+            super(injector.getPriority());
             this.injector = injector;
         }
 
@@ -527,7 +527,7 @@ public class LSPosedBridge {
     }
 
     @NonNull
-    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Pre injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, Pre injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -538,15 +538,15 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new PreCallback(injector, priority);
+        var callback = new PreCallback(injector);
 
-        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, injector.getPriority(), callback)) {
             return new StateHandler<>(hookMethod,  callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
     @NonNull
-    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Post injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, Post injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -557,15 +557,15 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new PostCallback(injector, priority);
+        var callback = new PostCallback(injector);
 
-        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, injector.getPriority(), callback)) {
             return new StateHandler<>(hookMethod, callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);
     }
     @NonNull
-    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, int priority, Hook injector) {
+    public static <T extends Executable> Handler<T> hook(@NonNull T hookMethod, Hook injector) {
         if (Modifier.isAbstract(hookMethod.getModifiers())) {
             throw new IllegalArgumentException("Cannot hook abstract methods: " + hookMethod);
         } else if (hookMethod.getDeclaringClass().getClassLoader() == LSPosedContext.class.getClassLoader()) {
@@ -576,9 +576,9 @@ public class LSPosedBridge {
             throw new IllegalArgumentException("injector should not be null!");
         }
 
-        var callback = new HookCallback(injector, priority);
+        var callback = new HookCallback(injector);
 
-        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, priority, callback)) {
+        if (HookBridge.hookMethod(false, hookMethod, LSPosedBridge.NativeInjector.class, injector.getPriority(), callback)) {
             return new StateHandler<>(hookMethod, callback);
         }
         throw new HookFailedError("Cannot hook " + hookMethod);

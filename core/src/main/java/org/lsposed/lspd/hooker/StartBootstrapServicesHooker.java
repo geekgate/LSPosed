@@ -37,6 +37,7 @@ public class StartBootstrapServicesHooker implements Pre {
     public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         logD("SystemServer#startBootstrapServices() starts");
         // Utils.logI("[Injected] StartBootstrapServicesHooker::beforeHookedMethod");
+        ctx.trace();
         try {
             XposedInit.loadedPackagesInProcess.add("android");
 

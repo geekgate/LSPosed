@@ -8,7 +8,6 @@ import java.lang.reflect.Executable;
 import java.util.ArrayList;
 
 import io.github.libxposed.api.Hook;
-import io.github.libxposed.api.Injector;
 import io.github.libxposed.api.Post;
 import io.github.libxposed.api.Pre;
 
@@ -57,35 +56,19 @@ public final class Reflector {
         }
         return new Reflector(members.toArray(new Executable[0]));
     }
-
-    public void inject(int priority, Pre injector) {
-        for (var member : members) {
-            LSPosedBridge.hook(member, priority, injector);
-        }
-    }
-    public void inject(int priority, Post injector) {
-        for (var member : members) {
-            LSPosedBridge.hook(member, priority, injector);
-        }
-    }
-    public void inject(int priority, Hook injector) {
-        for (var member : members) {
-            LSPosedBridge.hook(member, priority, injector);
-        }
-    }
     public void inject(Hook injector) {
         for (var member : members) {
-            LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
+            LSPosedBridge.hook(member, injector);
         }
     }
     public void inject(Pre injector) {
         for (var member : members) {
-            LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
+            LSPosedBridge.hook(member, injector);
         }
     }
     public void inject(Post injector) {
         for (var member : members) {
-            LSPosedBridge.hook(member, Injector.PRIORITY_DEFAULT, injector);
+            LSPosedBridge.hook(member, injector);
         }
     }
 

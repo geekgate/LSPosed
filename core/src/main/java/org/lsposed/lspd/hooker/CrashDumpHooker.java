@@ -12,6 +12,7 @@ public class CrashDumpHooker implements Pre {
 
     public void inject(@NonNull Context ctx, @NonNull Object[] args) {
         // Utils.logI("[Injected] CrashDumpHooker::beforeHookedMethod");
+        ctx.trace();
         try {
             var e = (Throwable) args[0];
             LSPosedBridge.log("Crash unexpectedly: " + Log.getStackTraceString(e));

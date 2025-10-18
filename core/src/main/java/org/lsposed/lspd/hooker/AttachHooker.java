@@ -11,6 +11,7 @@ public class AttachHooker implements Post {
 
     public void inject(@NonNull Context ctx, Object returnValue, Throwable throwable) {
         // Utils.logI("[Injected] AttachHooker::afterHookedMethod");
+        ctx.trace();
         XposedInit.loadModules((ActivityThread) ctx.getThisObject());
     }
 }
